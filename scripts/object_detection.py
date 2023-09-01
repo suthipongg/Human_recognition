@@ -14,7 +14,7 @@ class ObjectDetection:
         weight_path = file_path / "weights"
         if self.model_name == "yolo_v3":
             self.person = [0]
-            self.car = [3, 4, 6, 8]
+            self.car = [2, 3, 5, 7]
             self.all_obj = self.person + self.car
             if self.version == "fast":
                 modelConfig = weight_path / 'yolov3.cfg'
@@ -30,8 +30,8 @@ class ObjectDetection:
                 self.class_name = f.read().rstrip('\n').split('\n')
             
             self.model = cv2.dnn.readNetFromDarknet(str(modelConfig),str(modelWeight))
-            self.model.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
-            self.model.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU_FP16)
+            self.model.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+            self.model.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
         else:
             print(f"Not has the model '{self.model_name}' in system")
             exit()
@@ -65,7 +65,7 @@ class ObjectDetection:
                         temp.append(["person", obj_info])
 
         # clean box that overlap
-        indices = cv2.dnn.NMSBoxes(bbox,confs,min_score,0.3)
+        indices = cv2.dnn.NMSBoxes(bbox,confs,min_score,0.3).flatten()
         for i in indices:
             result.append(temp[i])
             x, y, w, h = bbox[i]

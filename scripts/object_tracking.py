@@ -34,6 +34,7 @@ class Tracking:
         self.center_points_prev_frame = self.center_points_cur_frame
         self.center_points_cur_frame = []
         ret, self.frame = self.cap.read()
+        # self.frame = cv2.resize(self.frame, (800, 600), interpolation = cv2.INTER_AREA)
         return ret
 
     def __kill_process(self):
