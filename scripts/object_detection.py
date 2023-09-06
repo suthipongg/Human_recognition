@@ -1,77 +1,68 @@
 import cv2
-import numpy as np
-import pathlib
+from pathlib import Path
+import sys
 
-from time import time
+ROOT = Path(__file__).resolve().parents[1]
+model_path = ROOT / "models"
+if str(model_path) not in sys.path:
+    sys.path.append(str(model_path))
 
 class ObjectDetection:
-    def __init__(self, model_name="yolo_v3", version="fast"):
-        self.model_name = model_name
-        self.version = version
+    def __init__(self):
+        self.person = [0]
+        self.car = [2, 3, 5, 7]
+        self.all_obj = self.person + self.car
+        with open(ROOT / "class_object" / 'coco.names','rt') as f:
+            self.class_name = f.read().rstrip('\n').split('\n')
     
-    def select_model(self):
-        file_path = pathlib.Path(__file__).parents[1]
-        weight_path = file_path / "weights"
-        if self.model_name == "yolo_v3":
-            self.person = [0]
-            self.car = [2, 3, 5, 7]
-            self.all_obj = self.person + self.car
-            if self.version == "fast":
-                modelConfig = weight_path / 'yolov3.cfg'
-                modelWeight = weight_path / 'yolov3.weights'
-            elif self.version == "accurate":
-                modelConfig = weight_path / 'yolov3-spp.cfg'
-                modelWeight = weight_path / 'yolov3-spp.weights'
+    def select_model(self, model_name="yolo_v6", version="accurate"):
+        weight_path = ROOT / "weights"
+        if model_name == "yolo_v6":
+            from yolo_v6 import detect
+            if version == "accurate":
+                modelWeight = str(weight_path / 'yolov6l6.pt')
+            elif version in ["l6", "m6"]:
+                modelWeight = str(weight_path / str('yolov6' + version + '.pt'))
             else:
-                print(f"model '{self.model_name}' not has the version '{self.version}' in system")
+                print(f"model '{model_name}' not has the version '{version}' in system")
                 exit()
-
-            with open(file_path / "class_object" / 'coco.names','rt') as f:
-                self.class_name = f.read().rstrip('\n').split('\n')
             
-            self.model = cv2.dnn.readNetFromDarknet(str(modelConfig),str(modelWeight))
-            self.model.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
-            self.model.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
+            self.model = detect(weights=modelWeight, device='0', img_size=[640, 640], half=False)
         else:
-            print(f"Not has the model '{self.model_name}' in system")
+            print(f"Not has the model '{model_name}' in system")
             exit()
 
-    def detect(self, frame, min_score):
-        whT=320
-        blob = cv2.dnn.blobFromImage(frame,1/255,(whT,whT),[0,0,0],1,crop=False)
-        self.model.setInput(blob)
-        outputNames = [i for i in self.model.getUnconnectedOutLayersNames()]
-        outputs = self.model.forward(outputNames)
+    def detect(self, frame, min_score, iou_thres, max_det):
+        outputs = self.model.compute(frame, conf_thres=min_score, iou_thres=iou_thres, 
+                                     classes=self.all_obj, agnostic_nms=False, max_det=max_det)
 
-        # clean object that low confident and object class
-        hT, wT, cT = frame.shape
-        temp, result = [], []
-        bbox, confs = [], []
-        for output in outputs:
-            for det in output:
-                scores = det[5:]
-                classId = np.argmax(scores)
-                confidence = scores[classId]
-                if confidence > min_score and classId in self.all_obj:
-                    cx, cy = int(det[0]*wT), int(det[1]*hT)
-                    w, h = int(det[2]*wT), int(det[3]*hT)
-                    x, y = int(cx-w/2), int(cy-h/2)
-                    bbox.append([x,y,w,h])
-                    confs.append(float(confidence))
-                    obj_info = (cx, cy, int(w/2), int(h/2))
-                    if classId in self.car:
-                        temp.append(["car", obj_info])
-                    elif classId in self.person:
-                        temp.append(["person", obj_info])
+        result = []
+        for det in outputs:
+            classId = det[2]
+            cx, cy = map(int, det[0][:2])
+            w, h = map(int, det[0][2:])
+            obj_info = (cx, cy, int(w/2), int(h/2))
+            if classId in self.car:
+                result.append(["car", obj_info])
+            elif classId in self.person:
+                result.append(["person", obj_info])
 
-        # clean box that overlap
-        indices = cv2.dnn.NMSBoxes(bbox,confs,min_score,0.3).flatten()
-        for i in indices:
-            result.append(temp[i])
-            x, y, w, h = bbox[i]
-            cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,255),2)
-        # class_name = self.classNames[classIds[i]].upper()
-        return frame, result
+        return result
+    
+import torch
+@torch.no_grad()
+def test():
+    ob = ObjectDetection()
+    ob.select_model()
+    s = "/home/mew/Desktop/Object_tracking/video/cars.avi"
+    cap = cv2.VideoCapture(s)
+    while 1:
+        ret_val, img = cap.read()
+        frame, result = ob.detect(img, min_score=0.4)
+        cv2.imshow("show", frame)
+        cv2.namedWindow("show", cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)  # allow window resize (Linux)
+        cv2.resizeWindow("show", frame.shape[1], frame.shape[0])
+        if cv2.waitKey(1)  == 27: break
 
 if __name__ == "__main__":
-    ob = ObjectDetection()
+    test()
