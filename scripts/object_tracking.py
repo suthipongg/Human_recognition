@@ -132,7 +132,7 @@ class Tracking:
             Draw_image.draw_all(frame=self.frame, center_point=(x, y), corner_point=((x-w, y-h), (x+w, y+h)),
                                 class_obj=class_obj, size=size, color=color, thick=thick)
 
-    def __put_text_image(self, name_frame="Frame"):
+    def __put_text_image(self, avg_fps, name_frame="Frame"):
         self.__draw_all(self.cur_old_conf_detected, size=6, color=Color.GREEN, thick=2)
         self.__draw_all(self.center_points_cur_frame_remain, size=5, color=Color.RED, thick=1)
         self.__draw_all(self.cur_old_not_conf_detected, size=5, color=Color.RED, thick=1)
@@ -143,7 +143,7 @@ class Tracking:
         offset = 5
         y_offset = Draw_image.draw_text(frame=self.frame, text="Count : " + str(self.count_person), 
                                         point=[offset, offset], color=Color.BLACK)
-        Draw_image.draw_text(frame=self.frame, text="FPS : " + str(self.avg_fps), 
+        Draw_image.draw_text(frame=self.frame, text="FPS : " + str(avg_fps), 
                              point=[offset, offset*2+y_offset], color=Color.BLACK)
         cv2.imshow(name_frame, self.frame)
 
@@ -152,8 +152,7 @@ class Tracking:
             self.firt_tracking = False
             self.fps_calculator = CalcFPS()
         else:
-            self.avg_fps = self.fps_calculator.calculate()
-            self.__put_text_image()
+            self.__put_text_image(self.fps_calculator.calculate())
         if self.__kill_process():
             cv2.destroyAllWindows()
             return True
