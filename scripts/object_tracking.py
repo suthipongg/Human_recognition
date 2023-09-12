@@ -26,9 +26,10 @@ class Tracking:
         self.track_id = 0
         self.frame = None
         self.count_person = 0
+        self.firt_tracking = True
         
-        self.cur_old_conf_deteced = [] # "for draw image"
-        self.cur_old_not_conf_deteced = [] # "for draw image"
+        self.cur_old_conf_detected = [] # "for draw image"
+        self.cur_old_not_conf_detected = [] # "for draw image"
         self.tracking_out_objects = [] # "for draw image"
 
     def select_model_detection(self, model_name, version):
@@ -51,12 +52,15 @@ class Tracking:
     def get_amount_person(self):
         return self.count_person
 
-    def __start_loop(self):
-        self.cur_old_conf_deteced = [] # "for draw image"
-        self.cur_old_not_conf_deteced = [] # "for draw image"
+    def __reset_data(self):
+        self.cur_old_conf_detected = [] # "for draw image"
+        self.cur_old_not_conf_detected = [] # "for draw image"
         self.tracking_out_objects = [] # "for draw image"
         
         self.center_points_cur_frame = []
+
+    def __start_loop(self):
+        self.__reset_data()
         ret, self.frame = self.cap.read()
         return ret
 
@@ -87,22 +91,21 @@ class Tracking:
             self.tracking_out_objects.append(self.tracking_objects[object_id][0:2]) # "for draw image"
 
     def __confident_in_frame(self, confident, object_id, pt_min_dist):
-        
         self.tracking_objects[object_id][1] = pt_min_dist # point 
         self.center_points_cur_frame_remain.remove(self.tracking_objects[object_id][0:2])
         self.tracking_objects[object_id][3] = 0 # out_of_frame
         if confident < self.min_confidence_obj:
             self.tracking_objects[object_id][2] += 1 # confident
             
-            self.cur_old_not_conf_deteced.append(self.tracking_objects[object_id][0:2]) # "for draw image"
+            self.cur_old_not_conf_detected.append(self.tracking_objects[object_id][0:2]) # "for draw image"
             
         elif confident == self.min_confidence_obj:
             self.count_person += 1
             self.tracking_objects[object_id][2] += 1 # confident
             
-            self.cur_old_conf_deteced.append(self.tracking_objects[object_id][0:2]) # "for draw image"
+            self.cur_old_conf_detected.append(self.tracking_objects[object_id][0:2]) # "for draw image"
         else:
-            self.cur_old_conf_deteced.append(self.tracking_objects[object_id][0:2]) # "for draw image"
+            self.cur_old_conf_detected.append(self.tracking_objects[object_id][0:2]) # "for draw image"
 
     def __search_old_ID(self):
         self.center_points_cur_frame_remain = self.center_points_cur_frame.copy()
@@ -118,21 +121,23 @@ class Tracking:
             self.tracking_objects[self.track_id] = pt_obj + [0, 0]
             self.track_id += 1
 
+    def detect_and_tracking(self):
+        self.__detect_object()
+        self.__search_old_ID()
+        self.__add_new_ID()
+
+    def __draw_all(self, data, size=5, color=Color.RED, thick=1):
+        for class_obj, pt in data:
+            x, y, w, h = pt
+            Draw_image.draw_all(frame=self.frame, center_point=(x, y), corner_point=((x-w, y-h), (x+w, y+h)),
+                                class_obj=class_obj, size=size, color=color, thick=thick)
+
     def __put_text_image(self, name_frame="Frame"):
-        for class_obj, pt in self.cur_old_conf_deteced:
-            x, y, w, h = pt
-            Draw_image.draw_all(frame=self.frame, center_point=(x, y), corner_point=((x-w, y-h), (x+w, y+h)),
-                                class_obj=class_obj, size=6, color=Color.GREEN, thick=2)
-        for class_obj, pt in self.center_points_cur_frame_remain:
-            x, y, w, h = pt
-            Draw_image.draw_all(frame=self.frame, center_point=(x, y), corner_point=((x-w, y-h), (x+w, y+h)),
-                                class_obj=class_obj, size=5, color=Color.RED, thick=1)
-        for class_obj, pt in self.cur_old_not_conf_deteced:
-            x, y, w, h = pt
-            Draw_image.draw_all(frame=self.frame, center_point=(x, y), corner_point=((x-w, y-h), (x+w, y+h)),
-                                class_obj=class_obj, size=5, color=Color.RED, thick=1)
-        for class_obj, pt in self.tracking_out_objects:
-            x, y, w, h = pt
+        self.__draw_all(self.cur_old_conf_detected, size=6, color=Color.GREEN, thick=2)
+        self.__draw_all(self.center_points_cur_frame_remain, size=5, color=Color.RED, thick=1)
+        self.__draw_all(self.cur_old_not_conf_detected, size=5, color=Color.RED, thick=1)
+        for _, pt in self.tracking_out_objects:
+            x, y, _, _ = pt
             draw_color = Color.YELLOW
             Draw_image.draw_point(frame=self.frame, point=(x, y), size=4, color=draw_color)
         offset = 5
@@ -142,35 +147,37 @@ class Tracking:
                              point=[offset, offset*2+y_offset], color=Color.BLACK)
         cv2.imshow(name_frame, self.frame)
 
-    def __clear_process(self):
-        self.cap.release()
-        cv2.destroyAllWindows()
+    def __fps_calculator(self):
+        if self.firt_tracking:
+            self.firt_tracking = False
+            self.fps_calculator = CalcFPS()
+        else:
+            self.avg_fps = self.fps_calculator.calculate()
+            self.__put_text_image()
+        if self.__kill_process():
+            cv2.destroyAllWindows()
+            return True
+        self.fps_calculator.start_time()
+        return False
 
     def start_track(self, view_image=False):
-        fps_calculator = CalcFPS()
-        time_start = time.time()
         while 1:
             if not self.__start_loop():
                 break
-            self.__detect_object()
+            self.detect_and_tracking()
+
+            if view_image and self.__fps_calculator():
+                break
             
-            self.__search_old_ID()
-            self.__add_new_ID()
-
-            if view_image:
-                fps_calculator.update(1.0 / (time.time() - time_start))
-                self.avg_fps = fps_calculator.accumulate()
-                self.__put_text_image()
-                if self.__kill_process():
-                    break
-                time_start = time.time()
-
-        self.__clear_process()
+        self.cap.release()
         return self.get_amount_person()
     
 class CalcFPS:
     def __init__(self, nsamples: int = 50):
         self.framerate = deque(maxlen=nsamples)
+
+    def start_time(self):
+        self.start = time.time()
 
     def update(self, duration: float):
         self.framerate.append(duration)
@@ -180,3 +187,7 @@ class CalcFPS:
             return int(np.average(self.framerate))
         else:
             return 0
+        
+    def calculate(self):
+        self.update(1.0 / (time.time() - self.start))
+        return self.accumulate()
