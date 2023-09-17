@@ -52,7 +52,7 @@ class Tracking:
     def get_amount_person(self):
         return self.count_person
 
-    def __reset_data(self):
+    def reset_data(self):
         self.cur_old_conf_detected = [] # "for draw image"
         self.cur_old_not_conf_detected = [] # "for draw image"
         self.tracking_out_objects = [] # "for draw image"
@@ -60,7 +60,7 @@ class Tracking:
         self.center_points_cur_frame = []
 
     def __start_loop(self):
-        self.__reset_data()
+        self.reset_data()
         ret, self.frame = self.cap.read()
         return ret
 
@@ -147,7 +147,7 @@ class Tracking:
                              point=[offset, offset*2+y_offset], color=Color.BLACK)
         cv2.imshow(name_frame, self.frame)
 
-    def __fps_calculator(self):
+    def fps_calculate(self):
         if self.firt_tracking:
             self.firt_tracking = False
             self.fps_calculator = CalcFPS()
@@ -165,7 +165,7 @@ class Tracking:
                 break
             self.detect_and_tracking()
 
-            if view_image and self.__fps_calculator():
+            if view_image and self.fps_calculate():
                 break
             
         self.cap.release()
