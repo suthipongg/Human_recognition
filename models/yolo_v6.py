@@ -16,7 +16,7 @@ from yolov6.layers.common import DetectBackend
 from yolov6.data.data_augment import letterbox
 from yolov6.utils.nms import non_max_suppression
 
-class detect:
+class DetectionModel:
     def __init__(self, weights, device, img_size, half):
         self.__dict__.update(locals())
 
@@ -128,19 +128,3 @@ class detect:
         y[:, 2] = x[:, 2] - x[:, 0]  # width
         y[:, 3] = x[:, 3] - x[:, 1]  # height
         return y
- 
-@torch.no_grad()
-def test():
-    w = "/home/mew/Desktop/Object_tracking/weights/yolov6l6.pt"
-    s = "/home/mew/Desktop/Object_tracking/video/cars.avi"
-    data = "/home/mew/Desktop/Object_tracking/models/yolo_v6/data/coco.yaml"
-    c = [0,2,3,5,7]
-    inferer = detect(weights=w, device='0', img_size=[640, 640], half=False)
-    cap = cv2.VideoCapture(s)
-    while 1:
-        ret_val, img = cap.read()
-        inferer.compute(img, conf_thres=0.4, iou_thres=0.45, classes=c, agnostic_nms=False, max_det=1000, )
-        if cv2.waitKey(1)  == 27: break
-
-if __name__ == "__main__":
-    test()

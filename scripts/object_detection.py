@@ -1,4 +1,3 @@
-import cv2
 from pathlib import Path
 import sys
 
@@ -15,10 +14,10 @@ class ObjectDetection:
         with open(ROOT / "class_object" / 'coco.names','rt') as f:
             self.class_name = f.read().rstrip('\n').split('\n')
     
-    def select_model(self, model_name="yolo_v6", version="accurate"):
+    def select_model(self, model_name="yolo_v6", version="accurate", device="0"):
         weight_path = ROOT / "weights"
         if model_name == "yolo_v6":
-            from yolo_v6 import detect
+            from yolo_v6 import DetectionModel
             if version == "accurate":
                 modelWeight = str(weight_path / 'yolov6l6.pt')
             elif version in ["l6", "m6"]:
@@ -27,14 +26,19 @@ class ObjectDetection:
                 print(f"model '{model_name}' not has the version '{version}' in system")
                 exit()
             
-            self.model = detect(weights=modelWeight, device='0', img_size=[640, 640], half=False)
+            self.model = DetectionModel(weights=modelWeight, device=device, img_size=[640, 640], half=False)
         else:
             print(f"Not has the model '{model_name}' in system")
             exit()
 
-    def detect(self, frame, min_score, iou_thres, max_det):
-        outputs = self.model.compute(frame, conf_thres=min_score, iou_thres=iou_thres, 
-                                     classes=self.all_obj, agnostic_nms=False, max_det=max_det)
+    def config_model_detection(self, min_scores=0.7, iou_thres=0.5, max_det=1000):
+        self.iou_thres = iou_thres
+        self.min_scores = min_scores
+        self.max_det = max_det
+
+    def detect(self, frame):
+        outputs = self.model.compute(frame, conf_thres=self.min_scores, iou_thres=self.iou_thres, 
+                                     classes=self.all_obj, agnostic_nms=False, max_det=self.max_det)
 
         result = []
         for det in outputs:
@@ -48,21 +52,3 @@ class ObjectDetection:
                 result.append(["person", obj_info])
 
         return result
-    
-import torch
-@torch.no_grad()
-def test():
-    ob = ObjectDetection()
-    ob.select_model()
-    s = "/home/mew/Desktop/Object_tracking/video/cars.avi"
-    cap = cv2.VideoCapture(s)
-    while 1:
-        ret_val, img = cap.read()
-        frame, result = ob.detect(img, min_score=0.4)
-        cv2.imshow("show", frame)
-        cv2.namedWindow("show", cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)  # allow window resize (Linux)
-        cv2.resizeWindow("show", frame.shape[1], frame.shape[0])
-        if cv2.waitKey(1)  == 27: break
-
-if __name__ == "__main__":
-    test()

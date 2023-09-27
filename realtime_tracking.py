@@ -29,7 +29,7 @@ def track():
                 det.frame = frame
                 last_frame = det.frame
                 det.reset_data()
-                det.detect_and_tracking()
+                det.tracking_process()
                 if det.fps_calculate():
                     break
     print("count :", det.get_amount_person())

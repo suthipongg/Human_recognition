@@ -1,4 +1,5 @@
 import cv2
+from pathlib import Path
 
 class Color():
     RED = (0, 0, 255)
@@ -6,7 +7,7 @@ class Color():
     YELLOW = (0, 255, 255)
     BLACK = (0, 0, 0)
     
-class Draw_image():
+class DrawImage():
     @staticmethod
     def draw_point(frame, point, size=5, color=Color.RED):
         cv2.circle(frame, point, size, color, -1)
@@ -44,10 +45,56 @@ class Draw_image():
         cv2.putText(img=frame, text=class_obj, org=(point_L[0], point_L[1] - 2 if outside else point_L[1] + h + 2), 
                     fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=font_size, color=tuple(map(cvt_color, color)), 
                     thickness=tf)
-        
-    def draw_all(frame, center_point, corner_point, class_obj, size=5, color=Color.RED, thick=2):
-        Draw_image.draw_point(frame=frame, point=center_point, size=size, color=color)
-        Draw_image.draw_box(frame=frame, point_L=corner_point[0], 
+    
+    @staticmethod
+    def single_draw_all(frame, center_point, corner_point, class_obj, size=5, color=Color.RED, thick=2):
+        DrawImage.draw_point(frame=frame, point=center_point, size=size, color=color)
+        DrawImage.draw_box(frame=frame, point_L=corner_point[0], 
                             point_R=corner_point[1], color=color, thick=thick)
-        Draw_image.draw_class(frame=frame, point_L=corner_point[0],
+        DrawImage.draw_class(frame=frame, point_L=corner_point[0],
                                 point_R=corner_point[1], class_obj=class_obj, color=color)
+    
+    @staticmethod
+    def multi_draw_all(frame, data, size=5, color=Color.RED, thick=1):
+        for class_obj, pt in data:
+            x, y, w, h = pt
+            DrawImage.single_draw_all(frame=frame, center_point=(x, y), corner_point=((x-w, y-h), (x+w, y+h)),
+                                class_obj=class_obj, size=size, color=color, thick=thick)
+            
+class LoadVideo:
+    def __init__(self, path):
+        self.stop = False
+        p = str(Path(path).resolve())
+        self.add_video(p)  # new video
+
+    def __iter__(self):
+        self.count = 0
+        return self
+
+    def __next__(self):
+        ret_val, self.frame = self.cap.read()
+        while not ret_val or self.stop:
+            self.count += 1
+            self.cap.release()
+            raise StopIteration
+        return self.frame
+
+    def add_video(self, path):
+        self.cap = cv2.VideoCapture(path)
+        self.frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    
+    def show_video(self, name_frame="Frame"):
+        cv2.imshow(name_frame, self.frame)
+        
+    def wait_key(self):
+        key = cv2.waitKey(1)
+        if key == 27:
+            self.__kill_video()
+        
+    def __kill_video(self):
+        self.cap.release()
+        cv2.destroyAllWindows()
+        self.stop = True
+
+    def __len__(self):
+        return self.frames  # amount of frames
