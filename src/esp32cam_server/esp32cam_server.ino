@@ -9,7 +9,7 @@ WebServer server(80);
 
 static auto set_res = esp32cam::Resolution::find(800, 600);
 
-void serveJpg()
+void SendJPG()
 {
   auto frame = esp32cam::capture();
   if (frame == nullptr) {
@@ -31,7 +31,7 @@ void handleJpg()
   if (!esp32cam::Camera.changeResolution(set_res)) {
     Serial.println("SET-RES FAIL");
   }
-  serveJpg();
+  SendJPG();
 }
 
 void handleMjpeg()
