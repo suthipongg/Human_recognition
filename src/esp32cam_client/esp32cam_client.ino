@@ -3,30 +3,24 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
-#define PWDN_GPIO_NUM 32
-#define RESET_GPIO_NUM -1
-#define XCLK_GPIO_NUM 0
-#define SIOD_GPIO_NUM 26
-#define SIOC_GPIO_NUM 27
-
-#define Y9_GPIO_NUM 35
-#define Y8_GPIO_NUM 34
-#define Y7_GPIO_NUM 39
-#define Y6_GPIO_NUM 36
-#define Y5_GPIO_NUM 21
-#define Y4_GPIO_NUM 19
-#define Y3_GPIO_NUM 18
-#define Y2_GPIO_NUM 5
-#define VSYNC_GPIO_NUM 25
-#define HREF_GPIO_NUM 23
-#define PCLK_GPIO_NUM 22
-
+// ------------------- config -------------------
 const char* ssid = "Music";
 const char* password = "mew654321";
 const char* serverUrl = "http://172.20.10.3:8080/upload_image"; // Modify with your server URL
 
+const int FPS = 10;
+
+
+const unsigned long captureInterval = 1.0/float(FPS) * 1000;
+volatile bool captureFlag = false;
+hw_timer_t *timer = NULL; // Declare the timer variable
+
 static auto set_res = esp32cam::Resolution::find(800, 600);
 HTTPClient http;
+
+void IRAM_ATTR onTimer() {
+  captureFlag = true;
+}
 
 void SendJPG()
 {
@@ -45,9 +39,7 @@ void SendJPG()
   int httpResponseCode = http.POST(frame->data(), frame->size());
   http.end();
 
-  if (httpResponseCode == 200) {
-    Serial.println("Image uploaded successfully.");
-  } else {
+  if (httpResponseCode != 200) {
     Serial.print("HTTP error code: ");
     Serial.println(httpResponseCode);
   }
@@ -76,8 +68,18 @@ void setup() {
     bool ok = Camera.begin(cfg);
     Serial.println(ok ? "CAMERA OK" : "CAMERA FAIL");
   }
+
+  // Configure and start the hardware timer for the interrupt
+  timer = timerBegin(0, 80, true); // Timer 0, divider 80 (1 MHz), count up
+  timerAttachInterrupt(timer, &onTimer, true); // Attach the ISR function
+  timerAlarmWrite(timer, captureInterval * 1000, true); // Set the interval in microseconds
+  timerAlarmEnable(timer); // Enable the timer
 }
 
 void loop() {
-  SendJPG();
+  if (captureFlag) 
+  {
+    captureFlag = false;
+    SendJPG();
+  }
 }

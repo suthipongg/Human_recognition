@@ -3,10 +3,6 @@
 #include <HTTPClient.h>
 #include "esp_camera.h"
 
-const char* ssid = "Music";
-const char* password = "mew654321";
-const char* serverUrl = "http://172.20.10.3:8080/upload_image"; // Modify with your server URL
-
 // Camera configuration
 #define PWDN_GPIO_NUM 32
 #define RESET_GPIO_NUM -1
@@ -26,7 +22,41 @@ const char* serverUrl = "http://172.20.10.3:8080/upload_image"; // Modify with y
 #define HREF_GPIO_NUM 23
 #define PCLK_GPIO_NUM 22
 
+// ------------------- config -------------------
+const char* ssid = "Music";
+const char* password = "mew654321";
+const char* serverUrl = "http://172.20.10.3:8080/upload_image"; // Modify with your server URL
+
+const int FPS = 10;
+
+
+const unsigned long captureInterval = 1.0/float(FPS) * 1000;
+volatile bool captureFlag = false;
+hw_timer_t *timer = NULL; // Declare the timer variable
+
 HTTPClient http;
+
+void IRAM_ATTR onTimer() {
+  captureFlag = true;
+}
+
+void SendJPG() {
+  // Capture an image
+  camera_fb_t *fb = esp_camera_fb_get();
+  
+  if (fb) 
+  {
+    // Send the captured image to the server
+    
+    http.begin(serverUrl);
+    http.addHeader("Content-Type", "image/jpeg");
+    http.addHeader("Content-Disposition", "attachment; filename=capture.jpg");
+    http.POST(fb->buf, fb->len); // Pass the image data and size
+    http.end();
+
+    esp_camera_fb_return(fb);
+  }
+}
 
 void setup() {
   Serial.begin(115200);
@@ -61,9 +91,10 @@ void setup() {
   config.pin_reset = RESET_GPIO_NUM;
   config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_JPEG;
+  config.fb_location = (camera_fb_location_t)CAMERA_FB_IN_PSRAM;
 
   if(psramFound()){
-    config.frame_size = FRAMESIZE_UXGA;
+    config.frame_size = FRAMESIZE_SVGA;
     config.jpeg_quality = 20; // value -> range 3-63 : slow - fast : high - low
     config.fb_count = 5; // buffer : value -> range 1-5 : slow - fast
   } 
@@ -79,22 +110,18 @@ void setup() {
     Serial.printf("Camera init failed with error 0x%x", err);
     return;
   }
+
+  // Configure and start the hardware timer for the interrupt
+  timer = timerBegin(0, 80, true); // Timer 0, divider 80 (1 MHz), count up
+  timerAttachInterrupt(timer, &onTimer, true); // Attach the ISR function
+  timerAlarmWrite(timer, captureInterval * 1000, true); // Set the interval in microseconds
+  timerAlarmEnable(timer); // Enable the timer
 }
 
 void loop() {
-  // Capture an image
-  camera_fb_t *fb = esp_camera_fb_get();
-  
-  if (fb) {
-    // Send the captured image to the server
-    
-    http.begin(serverUrl);
-    http.addHeader("Content-Type", "image/jpeg");
-    http.addHeader("Content-Disposition", "attachment; filename=capture.jpg");
-    http.POST(fb->buf, fb->len); // Pass the image data and size
-    http.end();
-
-    esp_camera_fb_return(fb);
-    Serial.println("Image uploaded successfully.");
+  if (captureFlag) 
+  {
+    captureFlag = false;
+    SendJPG();
   }
 }
