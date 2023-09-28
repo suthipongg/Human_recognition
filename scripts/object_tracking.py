@@ -33,7 +33,7 @@ class Tracking:
     def get_amount_person(self):
         return self.count_person
 
-    def reset_data(self):
+    def reset_temp_data(self):
         self.cur_old_conf_detected = [] # "for draw image"
         self.cur_old_not_conf_detected = [] # "for draw image"
         self.tracking_out_objects = [] # "for draw image"

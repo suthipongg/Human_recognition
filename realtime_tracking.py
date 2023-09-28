@@ -28,7 +28,7 @@ def track():
             if last_frame != frame:
                 det.frame = frame
                 last_frame = det.frame
-                det.reset_data()
+                det.reset_temp_data()
                 det.tracking_process()
                 if det.fps_calculate():
                     break

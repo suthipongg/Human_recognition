@@ -4,7 +4,8 @@ from scripts.calculator import CalcFPS
 
 app = Flask(__name__)
 upload_folder = "uploads/"
-fps_calculator = CalcFPS()
+fps_calculator = CalcFPS(20)
+fps_calculator.start_time()
 
 if not os.path.exists(upload_folder):
     os.makedirs(upload_folder)
@@ -12,9 +13,9 @@ if not os.path.exists(upload_folder):
 @app.route('/upload_image', methods=['POST'])
 def upload_image():
     try:
-        fps_calculator.start_time()
         image_data = request.data
         fps = fps_calculator.calculate()
+        fps_calculator.start_time()
         print(fps)
         with open(os.path.join(upload_folder, "uploaded_image.jpg"), "wb") as f:
             f.write(image_data)

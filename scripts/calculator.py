@@ -13,7 +13,7 @@ class CalcFPS:
         self.framerate.append(duration)
 
     def accumulate(self):
-        if len(self.framerate) > 1:
+        if len(self.framerate) >= 1:
             return int(np.average(self.framerate))
         else:
             return 0

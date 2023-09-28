@@ -28,8 +28,8 @@ def track(obj_det, frame_name="frame"):
     video = LoadVideo("/home/mew/Desktop/Object_tracking/video/walking.avi")
     
     for frame in video:
-        obj_track.reset_data()
         fps_calculator.start_time()
+        obj_track.reset_temp_data()
         result = obj_det.detect(frame)
         obj_track.give_object(result)
         obj_track.tracking_process()
