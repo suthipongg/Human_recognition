@@ -1,6 +1,6 @@
 weights/
 __pycache__/
 models/*/
-uploads/*.mp4
-uploads/*.avi
-uploads/*.jpg
+video_uploads/*.mp4
+video_uploads/*.avi
+video_uploads/*.jpg

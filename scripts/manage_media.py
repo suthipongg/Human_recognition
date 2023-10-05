@@ -1,5 +1,12 @@
 import cv2
 from pathlib import Path
+from collections import deque
+import numpy as np
+import os, re, sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.append(str(ROOT))
 
 class Color():
     RED = (0, 0, 255)
@@ -56,10 +63,10 @@ class DrawImage():
     
     @staticmethod
     def multi_draw_all(frame, data, size=5, color=Color.RED, thick=1):
-        for class_obj, pt in data:
-            x, y, w, h = pt
+        for info in data:
+            x, y, w, h = info["point"]
             DrawImage.single_draw_all(frame=frame, center_point=(x, y), corner_point=((x-w, y-h), (x+w, y+h)),
-                                class_obj=class_obj, size=size, color=color, thick=thick)
+                                class_obj=info["class_obj"], size=size, color=color, thick=thick)
             
 class LoadVideo:
     def __init__(self, path):
@@ -98,3 +105,81 @@ class LoadVideo:
 
     def __len__(self):
         return self.frames  # amount of frames
+    
+class manage_queue:
+    def __init__(self, n_cam=1, n_device=1):
+        self.video_temp = [] # for temporary video [[timestamp, id_cam], ...]
+        self.video_wait = {} # for wait video {id_cam : [timestamp, ...], ...}
+        for n in range(n_cam):
+            self.video_wait[n] = deque()
+        self.cam_id_in_queue = np.array([False] * n_cam)
+        self.cam_id_in_process = np.array([False] * n_cam)
+        self.device_free_process = np.array([True] * n_device)
+        self.device_queue = np.array([None] * n_device)
+        
+        self.video_temp_name_dir = "video_temp"
+        self.video_process_name_dir = "video_process"
+        
+    def scan_directory(self):
+        self.video_temp = os.listdir(Path(ROOT / self.video_temp_name_dir))
+        self.video_temp.sort()
+    
+    def __move_file(self, file):
+        src_file = Path(ROOT / self.video_temp_name_dir / file)
+        dst_file = Path(ROOT / self.video_process_name_dir / file)
+        src_file.rename(dst_file)
+        
+    def __add_id_cam(self, id_cam):
+        if not self.cam_id_in_queue[id_cam]:
+                self.cam_id_in_queue[id_cam] = True
+    
+    def extract_add_name(self):
+        for file in self.video_temp:
+            temp_file = os.path.splitext(file)[0]
+            temp_file = re.split('_', temp_file)
+            id_cam = int(temp_file[1])
+            self.video_wait[id_cam].append(int(temp_file[0]))
+            self.__move_file(file)
+            self.__add_id_cam(id_cam)
+    
+    def get_queue_cam(self):
+        return np.where(self.cam_id_in_queue)[0]
+    
+    def get_queue_process(self):
+        return np.where(self.device_free_process)[0]
+    
+    def fullpath(self, file, cam_id, ext=".mp4"):
+        filename = str(file) + "_" + cam_id + ext
+        return Path(ROOT / self.video_process_name_dir / filename)
+    
+    def __delete_succes_video(self, process_id):
+        os.remove(self.device_queue[process_id])
+        
+    def check_success_video(self, process_id, cam_id):
+        if self.device_free_process[process_id] == True and self.device_queue[process_id] != None:
+            self.__delete_succes_video(process_id)
+            self.device_queue[process_id] = None
+    
+    def set_video_process(self, process_id, cam_id):
+        self.cam_id_in_process[cam_id] = True
+        file = self.video_wait[cam_id].pop(0)
+        if len(self.video_wait[cam_id]) == 0:
+            self.cam_id_in_queue[cam_id] = False
+        self.device_queue[process_id] = self.fullpath(file, cam_id)
+        self.device_free_process[process_id] = False
+    
+    def process(self):
+        while 1:
+            self.scan_directory()
+            self.extract_add_name()
+            
+            for process_id in self.get_queue_process():
+                self.check_success_video(process_id)
+                for cam_id in self.get_queue_cam():
+                    if not self.cam_id_in_process[cam_id]:
+                        self.set_video_process(process_id, cam_id)
+                        
+
+if __name__ == "__main__":
+    mn = manage_queue(2)
+    mn.process()

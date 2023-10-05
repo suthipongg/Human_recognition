@@ -39,7 +39,7 @@ def track(obj_det, frame_name="frame"):
         video.show_video(frame_name)
         video.wait_key()
 
-    print("count :", obj_track.get_amount_person())
+    print("count :", obj_track.get_amount_object())
     
 if __name__ == "__main__":
     det = model()

@@ -47,8 +47,8 @@ class ObjectDetection:
             w, h = map(int, det[0][2:])
             obj_info = (cx, cy, int(w/2), int(h/2))
             if classId in self.car:
-                result.append(["car", obj_info])
+                result.append({"class_obj":"car", "point":obj_info})
             elif classId in self.person:
-                result.append(["person", obj_info])
+                result.append({"class_obj":"person", "point":obj_info})
 
         return result

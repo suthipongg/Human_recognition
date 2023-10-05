@@ -3,7 +3,7 @@ import os
 from scripts.calculator import CalcFPS
 
 app = Flask(__name__)
-upload_folder = "uploads/"
+upload_folder = "video_uploads/"
 fps_calculator = CalcFPS(20)
 fps_calculator.start_time()
 
