@@ -112,7 +112,7 @@ class manage_queue:
         self.video_wait = {} # for wait video {id_cam : [timestamp, ...], ...}
         for n in range(n_cam):
             self.video_wait[n] = deque()
-        self.cam_id_in_queue = np.array([False] * n_cam)
+        self.cam_id_in_queue = np.array([0] * n_cam)
         self.cam_id_in_process = np.array([False] * n_cam)
         self.device_free_process = np.array([True] * n_device)
         self.device_queue = np.array([None] * n_device)
@@ -130,8 +130,7 @@ class manage_queue:
         src_file.rename(dst_file)
         
     def __add_id_cam(self, id_cam):
-        if not self.cam_id_in_queue[id_cam]:
-                self.cam_id_in_queue[id_cam] = True
+        self.cam_id_in_queue[id_cam] += 1
     
     def extract_add_name(self):
         for file in self.video_temp:
@@ -143,30 +142,40 @@ class manage_queue:
             self.__add_id_cam(id_cam)
     
     def get_queue_cam(self):
-        return np.where(self.cam_id_in_queue)[0]
+        return np.argmax(self.__cam_in_queue_and_free_process())
     
     def get_queue_process(self):
         return np.where(self.device_free_process)[0]
     
-    def fullpath(self, file, cam_id, ext=".mp4"):
-        filename = str(file) + "_" + cam_id + ext
+    def __fullpath(self, file, cam_id, ext=".avi"):
+        filename = str(file) + "_" + str(cam_id) + ext
         return Path(ROOT / self.video_process_name_dir / filename)
     
     def __delete_succes_video(self, process_id):
-        os.remove(self.device_queue[process_id])
+        os.remove(self.device_queue[process_id]['path'])
         
-    def check_success_video(self, process_id, cam_id):
+    def check_success_video(self, process_id):
         if self.device_free_process[process_id] == True and self.device_queue[process_id] != None:
             self.__delete_succes_video(process_id)
+            cam_id = self.device_queue[process_id]['cam_id']
+            self.cam_id_in_process[cam_id] = False
             self.device_queue[process_id] = None
     
     def set_video_process(self, process_id, cam_id):
         self.cam_id_in_process[cam_id] = True
-        file = self.video_wait[cam_id].pop(0)
-        if len(self.video_wait[cam_id]) == 0:
-            self.cam_id_in_queue[cam_id] = False
-        self.device_queue[process_id] = self.fullpath(file, cam_id)
+        file = self.video_wait[cam_id].popleft()
+        self.cam_id_in_queue[cam_id] -= 1
+        self.device_queue[process_id] = {'path':self.__fullpath(file, cam_id), 'cam_id':cam_id}
         self.device_free_process[process_id] = False
+    
+    def set_process_success(self, process_id):
+        self.device_free_process[process_id] = True
+    
+    def __cam_in_queue_and_free_process(self):
+        return self.cam_id_in_queue * (False == self.cam_id_in_process)
+    
+    def have_cam_queue_in_free_process(self):
+        return max(self.__cam_in_queue_and_free_process()) != 0
     
     def process(self):
         while 1:
@@ -175,11 +184,10 @@ class manage_queue:
             
             for process_id in self.get_queue_process():
                 self.check_success_video(process_id)
-                for cam_id in self.get_queue_cam():
-                    if not self.cam_id_in_process[cam_id]:
-                        self.set_video_process(process_id, cam_id)
-                        
+                if self.have_cam_queue_in_free_process():
+                    cam_id = self.get_queue_cam()
+                    self.set_video_process(process_id, cam_id)
 
 if __name__ == "__main__":
-    mn = manage_queue(2)
+    mn = manage_queue(3, 2)
     mn.process()
