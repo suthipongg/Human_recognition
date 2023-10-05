@@ -177,7 +177,7 @@ class manage_queue:
     def have_cam_queue_in_free_process(self):
         return max(self.__cam_in_queue_and_free_process()) != 0
     
-    def process(self):
+    def start_queue_system(self):
         while 1:
             self.scan_directory()
             self.extract_add_name()
@@ -190,4 +190,4 @@ class manage_queue:
 
 if __name__ == "__main__":
     mn = manage_queue(3, 2)
-    mn.process()
+    mn.start_queue_system()
