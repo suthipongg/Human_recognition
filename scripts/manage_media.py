@@ -119,7 +119,9 @@ class manage_queue:
         
         self.video_temp_name_dir = "video_temp"
         self.video_process_name_dir = "video_process"
-        
+        for file in os.listdir(Path(ROOT / self.video_process_name_dir)):
+            Path(ROOT / self.video_process_name_dir / file).rename(Path(ROOT / self.video_temp_name_dir / file))
+    
     def scan_directory(self):
         self.video_temp = os.listdir(Path(ROOT / self.video_temp_name_dir))
         self.video_temp.sort()
@@ -179,6 +181,7 @@ class manage_queue:
     
     def start_queue_system(self):
         while 1:
+            input()
             self.scan_directory()
             self.extract_add_name()
             
