@@ -3,6 +3,7 @@ from pathlib import Path
 from collections import deque
 import numpy as np
 import os, re, sys
+import logging
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -108,6 +109,8 @@ class LoadVideo:
     
 class manage_queue:
     def __init__(self, n_cam=1, n_device=1):
+        logging.basicConfig(level = logging.INFO)
+        logging.info("manage queue system starting")
         self.video_temp = [] # for temporary video [[timestamp, id_cam], ...]
         self.video_wait = {} # for wait video {id_cam : [timestamp, ...], ...}
         for n in range(n_cam):
@@ -119,8 +122,14 @@ class manage_queue:
         
         self.video_temp_name_dir = "video_temp"
         self.video_process_name_dir = "video_process"
+        self.__check_directory_created(self.video_temp_name_dir)
+        self.__check_directory_created(self.video_process_name_dir)
         for file in os.listdir(Path(ROOT / self.video_process_name_dir)):
             Path(ROOT / self.video_process_name_dir / file).rename(Path(ROOT / self.video_temp_name_dir / file))
+    
+    def __check_directory_created(self, name):
+        if name not in os.listdir(ROOT):
+            os.mkdir(Path(ROOT / name)) 
     
     def scan_directory(self):
         self.video_temp = os.listdir(Path(ROOT / self.video_temp_name_dir))
@@ -143,15 +152,8 @@ class manage_queue:
             self.__move_file(file)
             self.__add_id_cam(id_cam)
     
-    def get_queue_cam(self):
-        return np.argmax(self.__cam_in_queue_and_free_process())
-    
     def get_queue_process(self):
         return np.where(self.device_free_process)[0]
-    
-    def __fullpath(self, file, cam_id, ext=".avi"):
-        filename = str(file) + "_" + str(cam_id) + ext
-        return Path(ROOT / self.video_process_name_dir / filename)
     
     def __delete_succes_video(self, process_id):
         os.remove(self.device_queue[process_id]['path'])
@@ -162,6 +164,19 @@ class manage_queue:
             cam_id = self.device_queue[process_id]['cam_id']
             self.cam_id_in_process[cam_id] = False
             self.device_queue[process_id] = None
+            
+    def __cam_in_queue_and_free_process(self):
+        return self.cam_id_in_queue * (self.cam_id_in_process == False)
+            
+    def have_cam_queue_in_free_process(self):
+        return max(self.__cam_in_queue_and_free_process()) != 0
+    
+    def get_queue_cam(self):
+        return np.argmax(self.__cam_in_queue_and_free_process())
+    
+    def __fullpath(self, file, cam_id, ext=".avi"):
+        filename = str(file) + "_" + str(cam_id) + ext
+        return Path(ROOT / self.video_process_name_dir / filename)
     
     def set_video_process(self, process_id, cam_id):
         self.cam_id_in_process[cam_id] = True
@@ -173,15 +188,9 @@ class manage_queue:
     def set_process_success(self, process_id):
         self.device_free_process[process_id] = True
     
-    def __cam_in_queue_and_free_process(self):
-        return self.cam_id_in_queue * (False == self.cam_id_in_process)
-    
-    def have_cam_queue_in_free_process(self):
-        return max(self.__cam_in_queue_and_free_process()) != 0
-    
     def start_queue_system(self):
+        logging.info("manage queue system started")
         while 1:
-            input()
             self.scan_directory()
             self.extract_add_name()
             
@@ -190,6 +199,7 @@ class manage_queue:
                 if self.have_cam_queue_in_free_process():
                     cam_id = self.get_queue_cam()
                     self.set_video_process(process_id, cam_id)
+        logging.info("manage queue system exit")
 
 if __name__ == "__main__":
     mn = manage_queue(3, 2)
