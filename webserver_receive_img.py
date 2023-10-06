@@ -27,7 +27,7 @@ def name_video(cam_id, current_time):
 def create_video(cam_id, current_time):
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     file_name = name_video(cam_id, current_time)
-    out = cv2.VideoWriter(file_name, fourcc, Config.FPS, (Config.WIDTH, Config.HEIGHT))
+    out = cv2.VideoWriter(str(ROOT / Config.UPLOAD_FOLDER / file_name), fourcc, Config.FPS, (Config.WIDTH, Config.HEIGHT))
     return out
 
 def preprocess(img):
@@ -48,7 +48,7 @@ def upload_image():
         if image_data:
             img = preprocess(image_data)
 
-            current_time = round(time.time()*1000)
+            current_time = round(time.time())
             if not cam_info[cam_id]["save"]:
                 cam_info[cam_id]["timestamp"] = current_time
                 cam_info[cam_id]["save"] = True
@@ -56,12 +56,12 @@ def upload_image():
                 
             cam_info[cam_id]["video"].write(img)
             
-            if current_time - cam_info[cam_id]["timestamp"] > Config.video_length_time*1000:
+            if current_time - cam_info[cam_id]["timestamp"] > Config.video_length_time:
                 cam_info[cam_id]["save"] = False
                 cam_info[cam_id]["video"].release()
                 move_file(name_video(cam_id, cam_info[cam_id]["timestamp"]))
-            
-        return "Image uploaded and processed successfully.", 200
+                
+            return "Image uploaded and processed successfully.", 200
     except Exception as e:
         return str(e), 500
 

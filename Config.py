@@ -10,7 +10,7 @@ N_CAM = 2
 WIDTH = 800
 HEIGHT = 600
 
-video_length_time = 600 # insecond
+video_length_time = 10 # in second
 
 FPS = 10
 
