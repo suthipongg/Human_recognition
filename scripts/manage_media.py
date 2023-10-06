@@ -110,7 +110,7 @@ class LoadVideo:
 class manage_queue:
     def __init__(self, n_cam=1, n_device=1):
         logging.basicConfig(level = logging.INFO)
-        logging.info("manage queue system starting")
+        logging.info("manage queue system initial")
         self.video_temp = [] # for temporary video [[timestamp, id_cam], ...]
         self.video_wait = {} # for wait video {id_cam : [timestamp, ...], ...}
         for n in range(n_cam):
