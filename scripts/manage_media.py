@@ -9,6 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
 
+import Config
+
 class Color():
     RED = (0, 0, 255)
     GREEN = (0, 255, 0)
@@ -120,24 +122,22 @@ class manage_queue:
         self.device_free_process = np.array([True] * n_device)
         self.device_queue = np.array([None] * n_device)
         
-        self.video_temp_name_dir = "video_temp"
-        self.video_process_name_dir = "video_process"
-        self.__check_directory_created(self.video_temp_name_dir)
-        self.__check_directory_created(self.video_process_name_dir)
-        for file in os.listdir(Path(ROOT / self.video_process_name_dir)):
-            Path(ROOT / self.video_process_name_dir / file).rename(Path(ROOT / self.video_temp_name_dir / file))
+        self.__check_directory_created(Config.VIDEO_TEMP_FOLDER)
+        self.__check_directory_created(Config.VIDEO_PROCESS_FOLDER)
+        for file in os.listdir(Path(ROOT / Config.VIDEO_PROCESS_FOLDER)):
+            Path(ROOT / Config.VIDEO_PROCESS_FOLDER / file).rename(Path(ROOT / Config.VIDEO_TEMP_FOLDER / file))
     
     def __check_directory_created(self, name):
-        if name not in os.listdir(ROOT):
+        if str(name) not in os.listdir(ROOT):
             os.mkdir(Path(ROOT / name)) 
     
     def scan_directory(self):
-        self.video_temp = os.listdir(Path(ROOT / self.video_temp_name_dir))
+        self.video_temp = os.listdir(Path(ROOT / Config.VIDEO_TEMP_FOLDER))
         self.video_temp.sort()
     
     def __move_file(self, file):
-        src_file = Path(ROOT / self.video_temp_name_dir / file)
-        dst_file = Path(ROOT / self.video_process_name_dir / file)
+        src_file = Path(ROOT / Config.VIDEO_TEMP_FOLDER / file)
+        dst_file = Path(ROOT / Config.VIDEO_PROCESS_FOLDER / file)
         src_file.rename(dst_file)
         
     def __add_id_cam(self, id_cam):
@@ -176,7 +176,7 @@ class manage_queue:
     
     def __fullpath(self, file, cam_id, ext=".avi"):
         filename = str(file) + "_" + str(cam_id) + ext
-        return Path(ROOT / self.video_process_name_dir / filename)
+        return Path(ROOT / Config.VIDEO_PROCESS_FOLDER / filename)
     
     def set_video_process(self, process_id, cam_id):
         self.cam_id_in_process[cam_id] = True
@@ -202,5 +202,5 @@ class manage_queue:
         logging.info("manage queue system exit")
 
 if __name__ == "__main__":
-    mn = manage_queue(3, 2)
+    mn = manage_queue(Config.N_CAM, 2)
     mn.start_queue_system()

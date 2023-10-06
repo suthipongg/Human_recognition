@@ -1,24 +1,65 @@
 from flask import Flask, request
-import os
-from scripts.calculator import CalcFPS
+import os, sys
+from pathlib import Path
+import time
+import Config
+import cv2
+import numpy as np
+
+ROOT = Path(__file__).resolve().parents[0]
+if str(ROOT) not in sys.path:
+    sys.path.append(str(ROOT))
 
 app = Flask(__name__)
-upload_folder = "video_uploads/"
-fps_calculator = CalcFPS(20)
-fps_calculator.start_time()
+if str(Config.UPLOAD_FOLDER) not in os.listdir(ROOT):
+    os.mkdir(Path(ROOT / Config.UPLOAD_FOLDER))
 
-if not os.path.exists(upload_folder):
-    os.makedirs(upload_folder)
+if not os.path.exists(Config.UPLOAD_FOLDER):
+    os.makedirs(Config.UPLOAD_FOLDER)
+
+cam_info = {}
+for cam_id in range(Config.N_CAM):
+    cam_info[cam_id] = {"timestamp":0, "save":False, "video":None}
+
+def name_video(cam_id, current_time):
+    return str(current_time) + "_" + str(cam_id) + '.avi'
+
+def create_video(cam_id, current_time):
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    file_name = name_video(cam_id, current_time)
+    out = cv2.VideoWriter(file_name, fourcc, Config.FPS, (Config.WIDTH, Config.HEIGHT))
+    return out
+
+def preprocess(img):
+    img = np.frombuffer(img, np.uint8)
+    img = cv2.imdecode(img, cv2.IMREAD_COLOR)
+    return img
+
+def move_file(file):
+    src_file = Path(ROOT / Config.UPLOAD_FOLDER / file)
+    dst_file = Path(ROOT / Config.VIDEO_TEMP_FOLDER / file)
+    src_file.rename(dst_file)
 
 @app.route('/upload_image', methods=['POST'])
 def upload_image():
     try:
         image_data = request.data
-        fps = fps_calculator.calculate()
-        fps_calculator.start_time()
-        print(fps)
-        with open(os.path.join(upload_folder, "uploaded_image.jpg"), "wb") as f:
-            f.write(image_data)
+        cam_id = Config.IP_CONVERTER[request.remote_addr]
+        if image_data:
+            img = preprocess(image_data)
+
+            current_time = round(time.time()*1000)
+            if not cam_info[cam_id]["save"]:
+                cam_info[cam_id]["timestamp"] = current_time
+                cam_info[cam_id]["save"] = True
+                cam_info[cam_id]["video"] = create_video(cam_id, current_time)
+                
+            cam_info[cam_id]["video"].write(img)
+            
+            if current_time - cam_info[cam_id]["timestamp"] > Config.video_length_time*1000:
+                cam_info[cam_id]["save"] = False
+                cam_info[cam_id]["video"].release()
+                move_file(name_video(cam_id, cam_info[cam_id]["timestamp"]))
             
         return "Image uploaded and processed successfully.", 200
     except Exception as e:
