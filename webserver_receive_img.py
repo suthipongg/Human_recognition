@@ -22,7 +22,7 @@ for cam_id in range(Config.N_CAM):
     cam_info[cam_id] = {"timestamp":0, "save":False, "video":None}
 
 def name_video(cam_id, current_time):
-    return str(current_time) + "_" + str(cam_id) + '.avi'
+    return str(current_time) + "_" + str(cam_id) + Config.EXT_VIDEO
 
 def create_video(cam_id, current_time):
     fourcc = cv2.VideoWriter_fourcc(*'XVID')

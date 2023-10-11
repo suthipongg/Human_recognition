@@ -4,8 +4,10 @@ UPLOAD_FOLDER = Path("video_uploads")
 VIDEO_TEMP_FOLDER = Path("video_temp")
 VIDEO_PROCESS_FOLDER = Path("video_process")
 
-
+N_GPU = 2
 N_CAM = 2
+
+EXT_VIDEO = ".mp4"
 
 WIDTH = 800
 HEIGHT = 600
