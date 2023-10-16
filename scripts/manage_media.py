@@ -87,7 +87,7 @@ class LoadVideo:
         ret_val, self.frame = self.cap.read()
         while not ret_val or self.stop:
             self.count += 1
-            self.cap.release()
+            self.__kill_video()
             raise StopIteration
         return self.frame
 

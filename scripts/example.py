@@ -36,8 +36,7 @@ def track(obj_det, porcess_id=0, shared_device_queue=None, shared_device_free_pr
             print("shared_device_queue : ", shared_device_queue[porcess_id])
             print("shared_device_free_process : ", shared_device_free_process[porcess_id])
             st = time()
-        if shared_device_queue[porcess_id] != None:
-            # video = LoadVideo("/home/music/Desktop/Object_tracking/video_process/2511_1.mp4")
+        if shared_device_queue[porcess_id] != None and not shared_device_free_process[porcess_id]:
             video = LoadVideo(shared_device_queue[porcess_id]['path'])
             for frame in video:
                 fps_calculator.start_time()
