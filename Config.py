@@ -3,11 +3,12 @@ from pathlib import Path
 UPLOAD_FOLDER = Path("video_uploads")
 VIDEO_TEMP_FOLDER = Path("video_temp")
 VIDEO_PROCESS_FOLDER = Path("video_process")
+DATA_TRACKING_FOLDER = Path("data_tracking")
 
 N_GPU = 2
 N_CAM = 2
 
-EXT_VIDEO = ".mp4"
+EXT_VIDEO = ".avi"
 
 WIDTH = 800
 HEIGHT = 600

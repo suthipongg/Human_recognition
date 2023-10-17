@@ -17,7 +17,7 @@ class ObjectDetection:
     def select_model(self, model_name="yolo_v6", version="accurate", device="0"):
         weight_path = ROOT / "weights"
         if model_name == "yolo_v6":
-            from yolo_v6 import DetectionModel
+            from models.yolo_v6 import DetectionModel
             if version == "accurate":
                 modelWeight = str(weight_path / 'yolov6l6.pt')
             elif version in ["l6", "m6"]:

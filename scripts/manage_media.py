@@ -5,8 +5,6 @@ import numpy as np
 import os, re, sys
 import logging
 
-from time import time
-
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
@@ -143,8 +141,13 @@ class manage_queue:
     
     def __move_file(self, file):
         src_file = Path(ROOT / Config.VIDEO_TEMP_FOLDER / file)
-        dst_file = Path(ROOT / Config.VIDEO_PROCESS_FOLDER / file)
-        src_file.rename(dst_file)
+        if file not in os.listdir(Path(ROOT / Config.VIDEO_PROCESS_FOLDER)):
+            dst_file = Path(ROOT / Config.VIDEO_PROCESS_FOLDER / file)
+            src_file.rename(dst_file)
+            return True
+        else:
+            os.remove(src_file)
+            return False
         
     def __add_id_cam(self, id_cam):
         self.cam_id_in_queue[id_cam] += 1
@@ -155,8 +158,8 @@ class manage_queue:
             temp_file = re.split('_', temp_file)
             id_cam = int(temp_file[1])
             self.video_wait[id_cam].append(int(temp_file[0]))
-            self.__move_file(file)
-            self.__add_id_cam(id_cam)
+            if self.__move_file(file):
+                self.__add_id_cam(id_cam)
     
     def get_queue_process(self):
         return np.where(list(self.device_free_process))[0]
@@ -196,14 +199,7 @@ class manage_queue:
     
     def start_queue_system(self):
         logging.info("manage queue system started")
-        st = time()
         while 1:
-            if time() - st > 5:
-                print("======= manage queue system =======")
-                print("queue cam :", self.cam_id_in_queue)
-                print("process :", self.device_queue)
-                print("free process :", self.device_free_process)
-                st = time()
             self.scan_directory()
             self.extract_add_name()
             
