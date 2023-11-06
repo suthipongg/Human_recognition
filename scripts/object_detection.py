@@ -19,7 +19,7 @@ class ObjectDetection:
         if model_name == "yolo_v6":
             from models.yolo_v6 import DetectionModel
             if version == "accurate":
-                modelWeight = str(weight_path / 'yolov6l6.pt')
+                modelWeight = str(weight_path / 'yolov6n6.pt')
             elif version in ["l6", "m6"]:
                 modelWeight = str(weight_path / str('yolov6' + version + '.pt'))
             else:

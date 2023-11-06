@@ -5,6 +5,7 @@ import time
 import Config
 import cv2
 import numpy as np
+import logging
 
 ROOT = Path(__file__).resolve().parents[0]
 if str(ROOT) not in sys.path:
@@ -66,4 +67,6 @@ def upload_image():
         return str(e), 500
 
 if __name__ == '__main__':
+    logging.basicConfig(level = logging.INFO)
+    logging.info("webserver receive image initial")
     app.run(host='0.0.0.0', port=8080)
