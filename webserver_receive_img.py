@@ -12,8 +12,6 @@ if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
 
 app = Flask(__name__)
-if str(Config.UPLOAD_FOLDER) not in os.listdir(ROOT / Config.VIDEO_ROOT):
-    os.mkdir(Path(ROOT / Config.VIDEO_ROOT / Config.UPLOAD_FOLDER))
 
 cam_info = {}
 for cam_id in range(Config.N_CAM):

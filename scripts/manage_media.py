@@ -132,9 +132,6 @@ class manage_queue:
         logging.basicConfig(level = logging.INFO)
         logging.info("manage queue system initial")
         
-        self.__check_directory_created(Config.VIDEO_TEMP_FOLDER.stem)
-        self.__check_directory_created(Config.VIDEO_PROCESS_FOLDER.stem)
-        
         self.process_folder = ROOT / Config.VIDEO_PROCESS_FOLDER
         for path_folder in os.listdir(self.process_folder):
             path_process_id = self.process_folder / path_folder
@@ -142,10 +139,6 @@ class manage_queue:
                 for file in os.listdir(path_process_id):
                     if file.endswith(Config.EXT_VIDEO):
                         (path_process_id / file).rename(ROOT / Config.VIDEO_TEMP_FOLDER / file)
-    
-    def __check_directory_created(self, name):
-        if str(name) not in os.listdir(ROOT / Config.VIDEO_ROOT):
-            os.mkdir(Path(ROOT / Config.VIDEO_ROOT / name)) 
     
     def _ext_file_name(self, file):
         temp = os.path.splitext(file)[0]
