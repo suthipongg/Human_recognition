@@ -90,7 +90,9 @@ nvidia-nccl-cu12==2.18.1
 nvidia-nvjitlink-cu12==12.2.140
 nvidia-nvtx-cu12==12.1.105
 oauthlib==3.2.2
-opencv-python
+opencv-contrib-python==4.8.1.78
+opencv-python==4.8.1.78
+opencv-python-headless==4.8.1.78
 opt-einsum==3.3.0
 overrides==7.4.0
 packaging==23.2
@@ -171,3 +173,5 @@ xxhash==3.4.1
 yarl==1.9.2
 zipp==3.17.0
 flask
+supervision
+ultralytics

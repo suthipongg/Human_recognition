@@ -12,16 +12,14 @@ if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
 
 app = Flask(__name__)
-if str(Config.UPLOAD_FOLDER) not in os.listdir(ROOT):
-    os.mkdir(Path(ROOT / Config.UPLOAD_FOLDER))
-
-if not os.path.exists(Config.UPLOAD_FOLDER):
-    os.makedirs(Config.UPLOAD_FOLDER)
+if str(Config.UPLOAD_FOLDER) not in os.listdir(ROOT / Config.VIDEO_ROOT):
+    os.mkdir(Path(ROOT / Config.VIDEO_ROOT / Config.UPLOAD_FOLDER))
 
 cam_info = {}
 for cam_id in range(Config.N_CAM):
     cam_info[cam_id] = {"timestamp":0, "save":False, "video":None}
 
+# video_name = timestamp_camID.ExtName
 def name_video(cam_id, current_time):
     return str(current_time) + "_" + str(cam_id) + Config.EXT_VIDEO
 
@@ -69,4 +67,9 @@ def upload_image():
 if __name__ == '__main__':
     logging.basicConfig(level = logging.INFO)
     logging.info("webserver receive image initial")
+    
+    for file in os.listdir(ROOT / Config.VIDEO_ROOT / Config.VIDEO_TEMP_FOLDER):
+        if file.endswith(Config.EXT_VIDEO):
+            file.rename(ROOT / Config.VIDEO_PROCESS_FOLDER / file)
+    
     app.run(host='0.0.0.0', port=8080)
