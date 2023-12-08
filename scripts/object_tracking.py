@@ -24,6 +24,9 @@ def get_track_data(video, model, data, count=False):
         track_id = results[0].boxes.id
         ls_cls = results[0].boxes.cls
         n_car = n_person = 0
+        if track_id is None:
+            continue
+
         for n, cls in enumerate(ls_cls):
             if cls in [1, 2, 3, 5, 7]:
                 n_car += 1

@@ -13,13 +13,13 @@ N_CAM = 2
 EXT_VIDEO = ".avi"
 N_PREVIOUS_FRAME = 10
 
-WIDTH = 768
-HEIGHT = 576
+# WIDTH = 768
+# HEIGHT = 576
 
-# WIDTH = 800
-# HEIGHT = 600
+WIDTH = 800
+HEIGHT = 600
 
-video_length_time = 10 # in second
+video_length_time = 50 # in second
 
 FPS = 10
 

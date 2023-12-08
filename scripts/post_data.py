@@ -21,5 +21,4 @@ def post_frame(cam_id, data, timestamp):
     body_data['personInFrame'] = data['person']
     body_data['carInFrame'] = data['car']
     body_data['published'] = True
-    print(body_data)
     requests.post(Config.POST_URL['frame'], json=body_data)

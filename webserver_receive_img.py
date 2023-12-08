@@ -66,8 +66,7 @@ if __name__ == '__main__':
     logging.basicConfig(level = logging.INFO)
     logging.info("webserver receive image initial")
     
-    for file in os.listdir(ROOT / Config.VIDEO_ROOT / Config.VIDEO_TEMP_FOLDER):
-        if file.endswith(Config.EXT_VIDEO):
-            file.rename(ROOT / Config.VIDEO_PROCESS_FOLDER / file)
+    for file in os.listdir(ROOT / Config.UPLOAD_FOLDER):
+        os.remove(ROOT / Config.UPLOAD_FOLDER / file)
     
     app.run(host='0.0.0.0', port=8080)
