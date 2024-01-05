@@ -1,4 +1,5 @@
-from flask import Flask, request
+from fastapi import FastAPI, WebSocket
+
 import os, sys
 from pathlib import Path
 import time
@@ -11,11 +12,17 @@ ROOT = Path(__file__).resolve().parents[0]
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
 
-app = Flask(__name__)
+logging.basicConfig(level = logging.INFO)
+logging.info("webserver receive image initial")
+
+for file in os.listdir(ROOT / Config.UPLOAD_FOLDER):
+    os.remove(ROOT / Config.UPLOAD_FOLDER / file)
+
+app = FastAPI()
 
 cam_info = {}
 for cam_id in range(Config.N_CAM):
-    cam_info[cam_id] = {"timestamp":0, "save":False, "video":None}
+    cam_info[cam_id] = {"timestamp":0, "save":False, "video":None, "frame":None}
 
 # video_name = timestamp_camID.ExtName
 def name_video(cam_id, current_time):
@@ -37,36 +44,54 @@ def move_file(file):
     dst_file = Path(ROOT / Config.VIDEO_TEMP_FOLDER / file)
     src_file.rename(dst_file)
 
-@app.route('/upload_image', methods=['POST'])
-def upload_image():
+@app.websocket("/upload_image")
+async def video_stream(websocket: WebSocket):
     try:
-        image_data = request.data
-        cam_id = Config.IP_CONVERTER[request.remote_addr]
-        if image_data:
-            img = preprocess(image_data)
-
-            current_time = round(time.time())
-            if not cam_info[cam_id]["save"]:
-                cam_info[cam_id]["timestamp"] = current_time
-                cam_info[cam_id]["save"] = True
-                cam_info[cam_id]["video"] = create_video(cam_id, current_time)
+        await websocket.accept()
+        cam_id = Config.IP_CONVERTER[websocket.client.host]
+        
+        while True:
+            data = await websocket.receive()
+            if 'bytes' in data.keys():
+                img = preprocess(data['bytes'])
                 
-            cam_info[cam_id]["video"].write(img)
-            
-            if current_time - cam_info[cam_id]["timestamp"] > Config.video_length_time:
-                cam_info[cam_id]["save"] = False
-                cam_info[cam_id]["video"].release()
-                move_file(name_video(cam_id, cam_info[cam_id]["timestamp"]))
+                current_time = round(time.time())
+                if not cam_info[cam_id]["save"]:
+                    cam_info[cam_id]["timestamp"] = current_time
+                    cam_info[cam_id]["save"] = True
+                    cam_info[cam_id]["video"] = create_video(cam_id, current_time)
+                    
+                cam_info[cam_id]["frame"] = img
+                cam_info[cam_id]["video"].write(img)
                 
-            return "Image uploaded and processed successfully.", 200
+                if current_time - cam_info[cam_id]["timestamp"] > Config.video_length_time:
+                    cam_info[cam_id]["save"] = False
+                    cam_info[cam_id]["video"].release()
+                    move_file(name_video(cam_id, cam_info[cam_id]["timestamp"]))
+                await websocket.send_text('image received')
+            elif 'text' in data.keys():
+                print(data['text'])
+                await websocket.send_text('text received')
+            else:
+                print("no data")
+                await websocket.send_text('wait image')
     except Exception as e:
+        print(str(e))
+        await websocket.close()
         return str(e), 500
-
-if __name__ == '__main__':
-    logging.basicConfig(level = logging.INFO)
-    logging.info("webserver receive image initial")
-    
-    for file in os.listdir(ROOT / Config.UPLOAD_FOLDER):
-        os.remove(ROOT / Config.UPLOAD_FOLDER / file)
-    
-    app.run(host='0.0.0.0', port=8080)
+            
+@app.websocket('/stream')
+async def stream(websocket: WebSocket):
+    try:
+        await websocket.accept()
+        cam_id = Config.IP_CONVERTER[websocket.client.host]
+        while True:
+            
+            if cam_info[cam_id]["frame"] is not None:
+                websocket.send_bytes(cam_info[cam_id]["frame"].tobytes())
+            else:
+                websocket.send_text('No image')
+    except Exception as e:
+        print(str(e))
+        await websocket.close()
+        return str(e), 500

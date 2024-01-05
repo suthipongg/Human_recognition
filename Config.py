@@ -7,6 +7,8 @@ VIDEO_PROCESS_FOLDER = VIDEO_ROOT / Path("video_process")
 VIDEO_PREVIOUS = VIDEO_ROOT / Path("video_previous")
 DATA_TRACKING_FOLDER = VIDEO_ROOT / Path("data_tracking")
 
+TRACKER = 'bytetrack.yaml'
+
 N_GPU = 2
 N_CAM = 2
 
@@ -45,4 +47,15 @@ POST_URL = {
 IP_CONVERTER = {
     "172.20.10.3" : 0,
     "172.20.10.2" : 1,
+}
+
+INFO_CAMERA = {
+  0: {
+    'time_start' : '6:00:00',
+    'time_end' : '18:00:00',
+  },
+  1: {
+    'time_start' : '6:00:00',
+    'time_end' : '18:00:00',
+  }
 }

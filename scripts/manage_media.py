@@ -1,7 +1,6 @@
 import cv2
 from pathlib import Path
 from collections import deque
-import numpy as np
 import os, re, sys
 import logging
 
