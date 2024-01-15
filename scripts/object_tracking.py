@@ -12,6 +12,13 @@ import Config
 
 from ultralytics import YOLO
 
+import numpy as np
+import cv2
+from collections import defaultdict
+import time
+track_history = defaultdict(lambda: [])
+
+
 # file name: timestamp_camID.ExtName
 # extract timestamp and camID from file name
 def ext_file_name(file):
@@ -21,10 +28,15 @@ def ext_file_name(file):
 
 def load_model(model_path='yolov8n.pt', core=0):
     device = torch.device(f'cuda:{core}' if torch.cuda.is_available() else 'cpu')
-    model = YOLO(model_path, device=device)
+    torch.cuda.set_device(device)
+    model = YOLO(model_path)
     return model
 
 def get_track_data(video, model, data, tracker='bytetrack.yaml', count=False):
+    if count:
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        out = cv2.VideoWriter(str(ROOT / 'video/result/' / f'{str(time.time())}_result.avi'), fourcc, Config.FPS, (Config.WIDTH, Config.HEIGHT))
+    
     for frame in video:
         results = model.track(frame, persist=True, tracker=str(ROOT / 'weights' / tracker), classes=[0, 1, 2, 3, 5, 7], verbose=False)
         track_id = results[0].boxes.id
@@ -55,9 +67,26 @@ def get_track_data(video, model, data, tracker='bytetrack.yaml', count=False):
             data['frame']['car'] = max(data['frame']['car'], n_car)
             data['frame']['person'] = max(data['frame']['person'], n_person)
 
+            annotated_frame = results[0].plot()
+            # Plot the tracks
+            for box, track_id in zip(results[0].boxes.xywh.cpu(), track_id.cpu()):
+                x, y, w, h = box
+                track = track_history[track_id]
+                track.append((float(x), float(y)))  # x, y center point
+                if len(track) > 30:  # retain 90 tracks for 90 frames
+                    track.pop(0)
+                points = np.hstack(track).astype(np.int32).reshape((-1, 1, 2))
+                cv2.polylines(annotated_frame, [points], isClosed=False, color=(230, 230, 230), thickness=10)
+                cv2.putText(annotated_frame, f"person {data['count']['person']}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                cv2.putText(annotated_frame, f"car    {data['count']['car']}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+            # save img
+            out.write(annotated_frame)
+    if count:
+        out.release()
+    
 def save_json_data(data, cam_id, file):
     timestamp = int(ext_file_name(file)[0])
-    date_time = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d")
+    date_time = datetime.fromtimestamp(int(timestamp)).date()
     # load previous data from json file
     with open(ROOT / Config.DATA_TRACKING_FOLDER / (cam_id+'.json'), 'r') as file_json:
         data_json = json.load(file_json)
@@ -65,7 +94,7 @@ def save_json_data(data, cam_id, file):
     # update data
     with open(ROOT / Config.DATA_TRACKING_FOLDER / (cam_id+'.json'), 'w') as file_json:
         for key, value in data['count'].items():
-            if date_time > datetime.strptime(data_json['date'], "%Y-%m-%d"):
+            if date_time > datetime.strptime(data_json['date'], "%Y-%m-%d").date():
                 data_json['count'][key] = value
             else:
                 data_json['object'][key] += value

@@ -71,7 +71,7 @@ async def video_stream(websocket: WebSocket):
             data = await websocket.receive()
             if 'bytes' in data.keys():
                 receive_video(data, cam_id)
-                await websocket.send_text('image received')
+                await websocket.send_text(f'timestamp {str(time.time())}: image received')
             elif 'text' in data.keys():
                 print(data['text'])
                 await websocket.send_text('text received')
@@ -105,7 +105,7 @@ async def stream(websocket: WebSocket):
 if __name__ == "__main__":
     uvicorn.run("app:app", 
                 host='0.0.0.0', 
-                port=8000, 
+                port=8080, 
                 log_level="info", 
-                reload=True
+                reload=False
                 )
