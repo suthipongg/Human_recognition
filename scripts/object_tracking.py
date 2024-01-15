@@ -1,7 +1,7 @@
 from pathlib import Path
 import sys, logging, os, re, json
 from datetime import datetime
-
+import torch
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
@@ -19,14 +19,15 @@ def ext_file_name(file):
     # return timestamp, camID
     return re.split('_', temp)
 
-def load_model(model_path='yolov8n.pt'):
-    return YOLO(model_path)
+def load_model(model_path='yolov8n.pt', core=0):
+    device = torch.device(f'cuda:{core}' if torch.cuda.is_available() else 'cpu')
+    model = YOLO(model_path, device=device)
+    return model
 
 def get_track_data(video, model, data, tracker='bytetrack.yaml', count=False):
     for frame in video:
         results = model.track(frame, persist=True, tracker=str(ROOT / 'weights' / tracker), classes=[0, 1, 2, 3, 5, 7], verbose=False)
         track_id = results[0].boxes.id
-        ls_cls = results[0].boxes.cls
         n_car = n_person = 0
         
         # if no object detected
@@ -34,41 +35,37 @@ def get_track_data(video, model, data, tracker='bytetrack.yaml', count=False):
             continue
         
         # count number of car and person
-        for n, cls in enumerate(ls_cls):
+        for n, cls in enumerate(results[0].boxes.cls):
             # car
-            if cls in [1, 2, 3, 5, 7]:
-                n_car += 1
+            if cls in [1, 2, 3, 5, 7] and data['max_id']['car'] < track_id[n]:
                 # update max_id
-                if data['max_id']['car'] < track_id[n]:
-                    data['max_id']['car'] = track_id[n]
-                    # count number of car and person in frame if count is True
-                    if count: 
-                        data['count']['car'] += 1
+                data['max_id']['car'] = track_id[n]
+                # count number of car and person in frame if count is True
+                if count: 
+                    n_car += 1
+                    data['count']['car'] += 1
             # human
-            elif cls == 0:
-                n_person += 1
-                if data['max_id']['person'] < track_id[n]:
-                    data['max_id']['person'] = track_id[n]
-                    if count: 
-                        data['count']['person'] += 1
+            elif cls == 0 and data['max_id']['person'] < track_id[n]:
+                data['max_id']['person'] = track_id[n]
+                if count: 
+                    n_person += 1
+                    data['count']['person'] += 1
         # update number of car and person in frame
         if count:
             data['frame']['car'] = max(data['frame']['car'], n_car)
             data['frame']['person'] = max(data['frame']['person'], n_person)
 
 def save_json_data(data, cam_id, file):
+    timestamp = int(ext_file_name(file)[0])
+    date_time = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d")
     # load previous data from json file
     with open(ROOT / Config.DATA_TRACKING_FOLDER / (cam_id+'.json'), 'r') as file_json:
         data_json = json.load(file_json)
         file_json.close()
-    
-    timestamp = int(ext_file_name(file)[0])
-    date_time = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d")
+    # update data
     with open(ROOT / Config.DATA_TRACKING_FOLDER / (cam_id+'.json'), 'w') as file_json:
         for key, value in data['count'].items():
-            if data_json['date'] == "":
-                data_json['count'][key] += value
-            elif date_time > datetime.strptime(data_json['date'], "%Y-%m-%d"):
+            if date_time > datetime.strptime(data_json['date'], "%Y-%m-%d"):
                 data_json['count'][key] = value
             else:
                 data_json['object'][key] += value
@@ -90,7 +87,7 @@ def tracking_process(process_id, file, model_path='yolov8n.pt'):
     data = {'count': meta_data.copy(), 'frame': meta_data.copy(), 'max_id': meta_data.copy()}
     
     logging.info(f"process {process_id} loading model")
-    model = load_model(model_path)
+    model = load_model(model_path, process_id)
     
     logging.info(f"process {process_id} computing {file}")
     # compute previous frame if exist and add current video

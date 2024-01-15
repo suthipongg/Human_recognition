@@ -21,7 +21,7 @@ N_PREVIOUS_FRAME = 10
 WIDTH = 800
 HEIGHT = 600
 
-video_length_time = 50 # in second
+video_length_time = 10 # in second
 
 FPS = 10
 
@@ -51,11 +51,11 @@ IP_CONVERTER = {
 
 INFO_CAMERA = {
   0: {
-    'time_start' : '6:00:00',
-    'time_end' : '18:00:00',
+    'time_start' : '1:00:00',
+    'time_end' : '23:00:00',
   },
   1: {
-    'time_start' : '6:00:00',
-    'time_end' : '18:00:00',
+    'time_start' : '1:00:00',
+    'time_end' : '23:00:00',
   }
 }

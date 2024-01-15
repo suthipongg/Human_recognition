@@ -1,12 +1,10 @@
 from fastapi import FastAPI, WebSocket
-
-import os, sys
+import uvicorn
+import os, sys, logging, time
 from pathlib import Path
-import time
 import Config
 import cv2
 import numpy as np
-import logging
 
 ROOT = Path(__file__).resolve().parents[0]
 if str(ROOT) not in sys.path:
@@ -22,7 +20,7 @@ app = FastAPI()
 
 cam_info = {}
 for cam_id in range(Config.N_CAM):
-    cam_info[cam_id] = {"timestamp":0, "save":False, "video":None, "frame":None}
+    cam_info[cam_id] = {"timestamp":0, "save":False, "video":None, "frame":None, "realtime":False}
 
 # video_name = timestamp_camID.ExtName
 def name_video(cam_id, current_time):
@@ -44,6 +42,25 @@ def move_file(file):
     dst_file = Path(ROOT / Config.VIDEO_TEMP_FOLDER / file)
     src_file.rename(dst_file)
 
+def receive_video(data, cam_id):
+    img = preprocess(data['bytes'])
+    current_time = round(time.time())
+    if not cam_info[cam_id]["save"]:
+        cam_info[cam_id]["timestamp"] = current_time
+        cam_info[cam_id]["save"] = True
+        cam_info[cam_id]["video"] = create_video(cam_id, current_time)
+    
+    if cam_info[cam_id]["realtime"]:
+        cam_info[cam_id]["frame"] = img
+    else:
+        cam_info[cam_id]["frame"] = None
+    cam_info[cam_id]["video"].write(img)
+    
+    if current_time - cam_info[cam_id]["timestamp"] > Config.video_length_time:
+        cam_info[cam_id]["save"] = False
+        cam_info[cam_id]["video"].release()
+        move_file(name_video(cam_id, cam_info[cam_id]["timestamp"]))
+
 @app.websocket("/upload_image")
 async def video_stream(websocket: WebSocket):
     try:
@@ -53,21 +70,7 @@ async def video_stream(websocket: WebSocket):
         while True:
             data = await websocket.receive()
             if 'bytes' in data.keys():
-                img = preprocess(data['bytes'])
-                
-                current_time = round(time.time())
-                if not cam_info[cam_id]["save"]:
-                    cam_info[cam_id]["timestamp"] = current_time
-                    cam_info[cam_id]["save"] = True
-                    cam_info[cam_id]["video"] = create_video(cam_id, current_time)
-                    
-                cam_info[cam_id]["frame"] = img
-                cam_info[cam_id]["video"].write(img)
-                
-                if current_time - cam_info[cam_id]["timestamp"] > Config.video_length_time:
-                    cam_info[cam_id]["save"] = False
-                    cam_info[cam_id]["video"].release()
-                    move_file(name_video(cam_id, cam_info[cam_id]["timestamp"]))
+                receive_video(data, cam_id)
                 await websocket.send_text('image received')
             elif 'text' in data.keys():
                 print(data['text'])
@@ -90,8 +93,19 @@ async def stream(websocket: WebSocket):
             if cam_info[cam_id]["frame"] is not None:
                 websocket.send_bytes(cam_info[cam_id]["frame"].tobytes())
             else:
-                websocket.send_text('No image')
+                cam_info[cam_id]['realtime'] = True
+                websocket.send_text('Wait camera')
     except Exception as e:
         print(str(e))
         await websocket.close()
+        cam_id = Config.IP_CONVERTER[websocket.client.host]
+        cam_info[cam_id]['realtime'] = False
         return str(e), 500
+    
+if __name__ == "__main__":
+    uvicorn.run("app:app", 
+                host='0.0.0.0', 
+                port=8000, 
+                log_level="info", 
+                reload=True
+                )
