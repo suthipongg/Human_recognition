@@ -13,6 +13,7 @@ def post_camera(cam_id, data, timestamp):
     body_data['personCount'] = data['person']
     body_data['carCount'] = data['car']
     body_data['published'] = True
+    body_data['timeDevice'] = timestamp
     requests.post(Config.POST_URL['camera'], json=body_data)
     
 def post_frame(cam_id, data, timestamp):
@@ -21,4 +22,5 @@ def post_frame(cam_id, data, timestamp):
     body_data['personInFrame'] = data['person']
     body_data['carInFrame'] = data['car']
     body_data['published'] = True
+    body_data['timeDevice'] = timestamp
     requests.post(Config.POST_URL['frame'], json=body_data)

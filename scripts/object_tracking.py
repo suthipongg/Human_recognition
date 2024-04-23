@@ -16,28 +16,36 @@ import numpy as np
 import cv2
 from collections import defaultdict
 import time
+from tqdm import tqdm
 track_history = defaultdict(lambda: [])
 
-
-# file name: timestamp_camID.ExtName
-# extract timestamp and camID from file name
+# extract timestamp and camID from file name (timestamp_camID.ExtName)
 def ext_file_name(file):
     temp = os.path.splitext(file)[0]
-    # return timestamp, camID
-    return re.split('_', temp)
+    return re.split('_', temp) # return [timestamp, camID]
 
+# load model object tracking
 def load_model(model_path='yolov8n.pt', core=0):
     device = torch.device(f'cuda:{core}' if torch.cuda.is_available() else 'cpu')
     torch.cuda.set_device(device)
     model = YOLO(model_path)
     return model
 
-def get_track_data(video, model, data, tracker='bytetrack.yaml', count=False):
-    if count:
+def init_write_video(cam_id, current_time):
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    file_name = str(ROOT / 'video/result/' / f'{str(time.time())}_result.avi')
+    out = cv2.VideoWriter(file_name, fourcc, Config.FPS, (Config.WIDTH, Config.HEIGHT))
+    return out
+
+# get tracking data from video
+def get_track_data(video, model, data, tracker='bytetrack.yaml', start_count=False, save_result=False):
+    # # save result video
+    if start_count and save_result:
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        out = cv2.VideoWriter(str(ROOT / 'video/result/' / f'{str(time.time())}_result.avi'), fourcc, Config.FPS, (Config.WIDTH, Config.HEIGHT))
+        out = cv2.VideoWriter(str(ROOT / 'video' / 'result' / f'{str(time.time())}_result.avi'), fourcc, Config.FPS, (Config.WIDTH, Config.HEIGHT))
     
-    for frame in video:
+    # tracking object
+    for frame in tqdm(video):
         results = model.track(frame, persist=True, tracker=str(ROOT / 'weights' / tracker), classes=[0, 1, 2, 3, 5, 7], verbose=False)
         track_id = results[0].boxes.id
         n_car = n_person = 0
@@ -53,35 +61,35 @@ def get_track_data(video, model, data, tracker='bytetrack.yaml', count=False):
                 # update max_id
                 data['max_id']['car'] = track_id[n]
                 # count number of car and person in frame if count is True
-                if count: 
+                if start_count: 
                     n_car += 1
                     data['count']['car'] += 1
             # human
             elif cls == 0 and data['max_id']['person'] < track_id[n]:
                 data['max_id']['person'] = track_id[n]
-                if count: 
+                if start_count: 
                     n_person += 1
                     data['count']['person'] += 1
-        # update number of car and person in frame
-        if count:
+        # update number of car and person in frame when tracking current video
+        if start_count:
             data['frame']['car'] = max(data['frame']['car'], n_car)
             data['frame']['person'] = max(data['frame']['person'], n_person)
-
-            annotated_frame = results[0].plot()
-            # Plot the tracks
-            for box, track_id in zip(results[0].boxes.xywh.cpu(), track_id.cpu()):
-                x, y, w, h = box
-                track = track_history[track_id]
-                track.append((float(x), float(y)))  # x, y center point
-                if len(track) > 30:  # retain 90 tracks for 90 frames
-                    track.pop(0)
-                points = np.hstack(track).astype(np.int32).reshape((-1, 1, 2))
-                cv2.polylines(annotated_frame, [points], isClosed=False, color=(230, 230, 230), thickness=10)
-                cv2.putText(annotated_frame, f"person {data['count']['person']}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-                cv2.putText(annotated_frame, f"car    {data['count']['car']}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-            # save img
-            out.write(annotated_frame)
-    if count:
+            if save_result:
+                annotated_frame = results[0].plot()
+                # Plot the tracks
+                for box, track_id in zip(results[0].boxes.xywh.cpu(), track_id.cpu()):
+                    x, y, w, h = box
+                    track = track_history[track_id]
+                    track.append((float(x), float(y)))  # x, y center point
+                    if len(track) > 30:  # retain 90 tracks for 90 frames
+                        track.pop(0)
+                    points = np.hstack(track).astype(np.int32).reshape((-1, 1, 2))
+                    cv2.polylines(annotated_frame, [points], isClosed=False, color=(230, 230, 230), thickness=10)
+                    cv2.putText(annotated_frame, f"person {data['count']['person']}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                    cv2.putText(annotated_frame, f"car    {data['count']['car']}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                # save img
+                out.write(annotated_frame)
+    if start_count and save_result:
         out.release()
     
 def save_json_data(data, cam_id, file):
@@ -124,10 +132,11 @@ def tracking_process(process_id, file, model_path='yolov8n.pt'):
         video = LoadVideo(previous_video_path)
         get_track_data(video, model, data, tracker=Config.TRACKER)
         video.add_video(video_processs_path)
+    # add current video
     else:
         video = LoadVideo(video_processs_path)
     # compute current video
-    get_track_data(video, model, data, tracker=Config.TRACKER, count=True)
+    get_track_data(video, model, data, tracker=Config.TRACKER, start_count=True)
         
     logging.info(f"process {process_id} save data")
     # save data to json file + post data to server and remove video
@@ -136,15 +145,15 @@ def tracking_process(process_id, file, model_path='yolov8n.pt'):
     os.remove(video_processs_path)
     logging.info(f"process {process_id} done")
 
-
+# tracking system
 def Track(model_path=str(ROOT / 'weights' / 'yolov8n.pt'), process_id=0):
     logging.basicConfig(level = logging.INFO)
     logging.info("Tracking system initial")
     
     while 1:
-        # check if there is video in folder
+        # check if there are video in folder
         for file in os.listdir(ROOT / Config.VIDEO_PROCESS_FOLDER / str(process_id)):
-            # if there is video, start tracking
+            # if there are video, start tracking
             if file.endswith(Config.EXT_VIDEO):
                 logging.info(f"process {process_id} start tracking")
                 tracking_process(process_id, file, model_path)

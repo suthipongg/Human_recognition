@@ -80,27 +80,23 @@ esp_err_t init_wifi() {
   }
   Serial.println("");
   Serial.println("WiFi connected");
+  return ESP_OK;
+}
+
+esp_err_t init_websocket() {
   Serial.println("Connecting to websocket");
   client.onMessage(onMessageCallback);
-  // bool connected = client.connect(serverUrl);
-  while (!client.connect(serverUrl)) {
+  bool connected = client.connect(serverUrl);
+  while (!connected) {
+    connected = client.connect(serverUrl);
     delay(500);
     Serial.print(".");
   }
-  // if (!connected) {
-  //   Serial.println("Cannot connect to websocket server!");
-  //   state = 3;
-  //   return ESP_FAIL;
-  // }
-  // if (state == 3) {
-  //   return ESP_FAIL;
-  // }
-
-  // state = 2;
   Serial.println("Websocket Connected!");
   client.send("deviceId"); // for verification
   return ESP_OK;
 }
+
 
 void setup() {
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
@@ -110,7 +106,8 @@ void setup() {
 
   init_camera();
   init_wifi();
-
+  init_websocket();
+  
   // Configure and start the hardware timer for the interrupt
   timer = timerBegin(0, 80, true); // Timer 0, divider 80 (1 MHz), count up
   timerAttachInterrupt(timer, &onTimer, true); // Attach the ISR function
@@ -120,8 +117,13 @@ void setup() {
 
 void loop() {
   
-  if (client.available() & captureFlag) {
-    captureFlag = false;
-    SendJPG();
+  if (client.available()) {
+    if (captureFlag) {
+      captureFlag = false;
+      SendJPG();
+    }
+  }
+  else {
+    init_websocket();
   }
 }
