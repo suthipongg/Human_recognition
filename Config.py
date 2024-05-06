@@ -25,20 +25,6 @@ video_length_time = 60 # in second
 
 FPS = 10
 
-body_data_camera = {
-  "camId": "string",
-  "personCount": 0,
-  "carCount": 0,
-  "published": False
-}
-
-body_data_frame = {
-  "camId": "string",
-  "personInFrame": 0,
-  "carInFrame": 0,
-  "published": False
-}
-
 POST_URL = {
     'camera' : 'http://54.151.142.15:3000/camera',
     'frame' : 'http://54.151.142.15:3000/frame',
@@ -47,15 +33,4 @@ POST_URL = {
 IP_CONVERTER = {
     "172.20.10.2" : 0,
     "172.20.10.3" : 1,
-}
-
-INFO_CAMERA = {
-  0: {
-    'time_start' : '1:00:00',
-    'time_end' : '23:00:00',
-  },
-  1: {
-    'time_start' : '1:00:00',
-    'time_end' : '23:00:00',
-  }
 }

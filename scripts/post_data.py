@@ -8,7 +8,7 @@ if str(ROOT) not in sys.path:
 import Config
 
 def post_camera(cam_id, data, timestamp):
-    body_data = Config.body_data_camera.copy()
+    body_data = {}
     body_data['camId'] = "CAM_" + str(cam_id)
     body_data['personCount'] = data['person']
     body_data['carCount'] = data['car']
@@ -17,7 +17,7 @@ def post_camera(cam_id, data, timestamp):
     requests.post(Config.POST_URL['camera'], json=body_data)
     
 def post_frame(cam_id, data, timestamp):
-    body_data = Config.body_data_frame.copy()
+    body_data = {}
     body_data['camId'] = "CAM_" + str(cam_id)
     body_data['personInFrame'] = data['person']
     body_data['carInFrame'] = data['car']

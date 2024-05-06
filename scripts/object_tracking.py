@@ -146,7 +146,7 @@ def tracking_process(process_id, file, model_path='yolov8n.pt'):
     logging.info(f"process {process_id} done")
 
 # tracking system
-def Track(model_path=str(ROOT / 'weights' / 'yolov8n.pt'), process_id=0):
+def Track(process_id=0, model_path=str(ROOT / 'weights' / 'yolov8n.pt')):
     logging.basicConfig(level = logging.INFO)
     logging.info("Tracking system initial")
     
