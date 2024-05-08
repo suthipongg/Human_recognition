@@ -1,17 +1,17 @@
 #include <ArduinoWebsockets.h>
 #include <Arduino.h>
+#include "ArduinoJson.h"
 #include "esp32cam.h"
 #include <WiFi.h>
 #include "soc/soc.h"
 #include "soc/rtc_cntl_reg.h"
-
+#include "base64.h"
 // ------------------- config -------------------
-const char* ssid = "Music";
-const char* password = "mew654321";
-const char* serverUrl = "http://172.20.10.3:8080/upload_image"; // Modify with your server URL
+const char* ssid = "meen mes mew_2.4G";
+const char* password = "meen mes mew";
+const char* serverUrl = "http://47.236.74.47:4451/upload_image"; // Modify with your server URL
 
 const int FPS = 10;
-
 const unsigned long captureInterval = 1.0/float(FPS) * 1000;
 volatile bool captureFlag = false;
 hw_timer_t *timer = NULL; // Declare the timer variable
@@ -31,18 +31,17 @@ void SendJPG()
 {
   if (!esp32cam::Camera.changeResolution(set_res)) {
     Serial.println("SET-RES FAIL");
+    return;
   }
 
   auto frame = esp32cam::capture();
   if (frame == nullptr) {
     Serial.println("CAPTURE FAIL");
-    ESP.restart();
     return;
   }
 
   // Send the captured image to the server
   client.sendBinary((const char*) frame->data(), frame->size());
-  Serial.println("MJPG sent");
   client.poll();
 }
 
@@ -66,11 +65,6 @@ esp_err_t init_camera() {
   }
 }
 
-void onMessageCallback(WebsocketsMessage message) {
-  Serial.print("Got Message: ");
-  Serial.println(message.data());
-}
-
 esp_err_t init_wifi() {
   WiFi.begin(ssid, password);
   Serial.println("Starting Wifi");
@@ -78,23 +72,26 @@ esp_err_t init_wifi() {
     delay(500);
     Serial.print(".");
   }
-  Serial.println("");
-  Serial.println("WiFi connected");
+  Serial.println("\nWiFi connected");
   return ESP_OK;
 }
 
 esp_err_t init_websocket() {
   Serial.println("Connecting to websocket");
-  client.onMessage(onMessageCallback);
-  bool connected = client.connect(serverUrl);
-  while (!connected) {
-    connected = client.connect(serverUrl);
-    delay(500);
-    Serial.print(".");
+  client.onMessage([](WebsocketsMessage message) {
+    Serial.print("Got Message: ");
+    Serial.println(message.data());
+  });
+
+  // Try to connect to WebSocket server
+  if (client.connect(serverUrl)) {
+    Serial.println("WebSocket Connected!");
+    client.send(String(ESP.getEfuseMac(), HEX)); // Send device ID for verification
+    return ESP_OK;
+  } else {
+    Serial.println("WebSocket Connection Failed!");
+    return ESP_FAIL;
   }
-  Serial.println("Websocket Connected!");
-  client.send("deviceId"); // for verification
-  return ESP_OK;
 }
 
 
@@ -116,14 +113,14 @@ void setup() {
 }
 
 void loop() {
-  
-  if (client.available()) {
-    if (captureFlag) {
-      captureFlag = false;
-      SendJPG();
-    }
+  if (captureFlag) {
+    captureFlag = false;
+    SendJPG();
   }
-  else {
+
+  if (!client.available()) {
+    // Reconnect to WebSocket server if disconnected
     init_websocket();
+    delay(500);
   }
 }

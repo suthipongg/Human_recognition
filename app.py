@@ -6,6 +6,8 @@ from pathlib import Path
 import Config
 import cv2
 import numpy as np
+import asyncio
+import base64
 
 ROOT = Path(__file__).resolve().parents[0]
 if str(ROOT) not in sys.path:
@@ -48,7 +50,7 @@ def move_file(file):
 
 # receive video and save to video file for each camera id
 def receive_video(data, cam_id):
-    img = preprocess(data['bytes'])
+    img = preprocess(data)
     current_time = round(time.time())
     # if not save video, create new video file
     if not cam_info[cam_id]["save"]:
@@ -69,56 +71,68 @@ def receive_video(data, cam_id):
         cam_info[cam_id]["video"].release()
         move_file(name_video(cam_id, cam_info[cam_id]["timestamp"]))
 
+
 @app.websocket("/upload_image")
 async def video_stream(websocket: WebSocket):
     try:
         # accept connection
         await websocket.accept()
-        cam_id = Config.IP_CONVERTER[websocket.client.host]
+        # Receive chip ID from client
+        chip_id = await websocket.receive_text()
+        cam_id = Config.CHIP_ID.get(chip_id)
+        if cam_id is None:
+            await websocket.send_text("Invalid chip ID")
+            await websocket.close()
+            return
         # while connection is open
         while (websocket.application_state == WebSocketState.CONNECTED and websocket.client_state == WebSocketState.CONNECTED):
-            # receive image data from esp32
-            data = await websocket.receive()
-            # if image data is bytes, save to video file
-            if 'bytes' in data.keys():
-                receive_video(data, cam_id)
-                await websocket.send_text(f'timestamp {str(time.time())}: image received')
-            # if image data is text, send text to esp32
-            elif 'text' in data.keys():
-                print(data['text'])
-                await websocket.send_text('text received')
-            # if no data, send text to esp32
-            else:
-                print("no data")
-                await websocket.send_text('wait image')
+            try:
+                # Receive image data from ESP32-CAM
+                data = await websocket.receive_bytes()
+                if data:
+                    receive_video(data, cam_id)
+                    await websocket.send_text(f"Timestamp: {str(time.time())}, Image received")
+            except Exception as e:
+                print(f"Error receiving image: {e}")
+                await websocket.send_text('Invalid data received')
         await websocket.close()
-        return f"cam_id {cam_id} closed connection"
+        return f"Connection closed for cam_id {cam_id}"
     except Exception as e:
         print(str(e))
+        await websocket.send_text('something went wrong')
         await websocket.close()
         return str(e), 500
-            
+
+
 @app.websocket('/stream')
 async def stream(websocket: WebSocket):
     try:
         # accept connection
         await websocket.accept()
-        cam_id = Config.IP_CONVERTER[websocket.client.host]
+        cam_id = await websocket.receive_text()
+        if cam_id is None:
+            await websocket.send_text("Invalid chip ID")
+            await websocket.close()
+            return
+        cam_id = int(cam_id)
+        print(f"Start streaming cam_id {cam_id}")
         # while connection is open
         while (websocket.application_state == WebSocketState.CONNECTED and websocket.client_state == WebSocketState.CONNECTED):
             # if frame is saved in memory, send frame to server
             if cam_info[cam_id]["frame"] is not None:
-                websocket.send_bytes(cam_info[cam_id]["frame"].tobytes())
+                _, buffer = cv2.imencode('.jpg', cam_info[cam_id]["frame"])
+                base64_frame = base64.b64encode(buffer).decode("utf-8")
+                await websocket.send_text(base64_frame)
             # if frame is not saved in memory, send text to server
             else:
                 cam_info[cam_id]['realtime'] = True
-                websocket.send_text('Wait camera')
+                await websocket.send_text('Wait camera')
+            await asyncio.sleep(0.5)
         await websocket.close()
         return f"cam_id {cam_id} stopped streaming"
     except Exception as e:
         print(str(e))
         await websocket.close()
-        cam_id = Config.IP_CONVERTER[websocket.client.host]
         cam_info[cam_id]['realtime'] = False
         return str(e), 500
     

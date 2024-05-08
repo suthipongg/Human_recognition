@@ -17,7 +17,7 @@ import cv2
 from collections import defaultdict
 import time
 from tqdm import tqdm
-track_history = defaultdict(lambda: [])
+# track_history = defaultdict(lambda: [])
 
 # extract timestamp and camID from file name (timestamp_camID.ExtName)
 def ext_file_name(file):
@@ -31,21 +31,16 @@ def load_model(model_path='yolov8n.pt', core=0):
     model = YOLO(model_path)
     return model
 
-def init_write_video(cam_id, current_time):
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    file_name = str(ROOT / 'video/result/' / f'{str(time.time())}_result.avi')
-    out = cv2.VideoWriter(file_name, fourcc, Config.FPS, (Config.WIDTH, Config.HEIGHT))
-    return out
-
 # get tracking data from video
 def get_track_data(video, model, data, tracker='bytetrack.yaml', start_count=False, save_result=False):
     # # save result video
-    if start_count and save_result:
-        fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        out = cv2.VideoWriter(str(ROOT / 'video' / 'result' / f'{str(time.time())}_result.avi'), fourcc, Config.FPS, (Config.WIDTH, Config.HEIGHT))
+    # if start_count and save_result:
+    #     fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    #     out = cv2.VideoWriter(str(ROOT / 'video' / 'result' / f'{str(time.time())}_result.avi'), fourcc, Config.FPS, (Config.WIDTH, Config.HEIGHT))
     
     # tracking object
-    for frame in tqdm(video):
+    # for frame in tqdm(video):
+    for frame in video:
         results = model.track(frame, persist=True, tracker=str(ROOT / 'weights' / tracker), classes=[0, 1, 2, 3, 5, 7], verbose=False)
         track_id = results[0].boxes.id
         n_car = n_person = 0
@@ -74,23 +69,23 @@ def get_track_data(video, model, data, tracker='bytetrack.yaml', start_count=Fal
         if start_count:
             data['frame']['car'] = max(data['frame']['car'], n_car)
             data['frame']['person'] = max(data['frame']['person'], n_person)
-            if save_result:
-                annotated_frame = results[0].plot()
-                # Plot the tracks
-                for box, track_id in zip(results[0].boxes.xywh.cpu(), track_id.cpu()):
-                    x, y, w, h = box
-                    track = track_history[track_id]
-                    track.append((float(x), float(y)))  # x, y center point
-                    if len(track) > 30:  # retain 90 tracks for 90 frames
-                        track.pop(0)
-                    points = np.hstack(track).astype(np.int32).reshape((-1, 1, 2))
-                    cv2.polylines(annotated_frame, [points], isClosed=False, color=(230, 230, 230), thickness=10)
-                    cv2.putText(annotated_frame, f"person {data['count']['person']}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-                    cv2.putText(annotated_frame, f"car    {data['count']['car']}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-                # save img
-                out.write(annotated_frame)
-    if start_count and save_result:
-        out.release()
+    #         if save_result:
+    #             annotated_frame = results[0].plot()
+    #             # Plot the tracks
+    #             for box, track_id in zip(results[0].boxes.xywh.cpu(), track_id.cpu()):
+    #                 x, y, w, h = box
+    #                 track = track_history[track_id]
+    #                 track.append((float(x), float(y)))  # x, y center point
+    #                 if len(track) > 30:  # retain 90 tracks for 90 frames
+    #                     track.pop(0)
+    #                 points = np.hstack(track).astype(np.int32).reshape((-1, 1, 2))
+    #                 cv2.polylines(annotated_frame, [points], isClosed=False, color=(230, 230, 230), thickness=10)
+    #                 cv2.putText(annotated_frame, f"person {data['count']['person']}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+    #                 cv2.putText(annotated_frame, f"car    {data['count']['car']}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+    #             # save img
+    #             out.write(annotated_frame)
+    # if start_count and save_result:
+    #     out.release()
     
 def save_json_data(data, cam_id, file):
     timestamp = int(ext_file_name(file)[0])
@@ -107,8 +102,9 @@ def save_json_data(data, cam_id, file):
             else:
                 data_json['object'][key] += value
         # post data to server
-        # post_camera(cam_id, data_json['object'], timestamp)
-        # post_frame(cam_id, data['frame'], timestamp)
+        time_device = datetime.fromtimestamp(int(timestamp)).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+        post_camera(cam_id, data_json['object'], time_device)
+        post_frame(cam_id, data['frame'], time_device)
         # save data to json file
         data_json['date'] = str(date_time)
         json.dump(data_json, file_json)

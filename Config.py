@@ -26,11 +26,10 @@ video_length_time = 60 # in second
 FPS = 10
 
 POST_URL = {
-    'camera' : 'http://54.151.142.15:3000/camera',
-    'frame' : 'http://54.151.142.15:3000/frame',
+    'camera' : 'https://service.novacamera.online/camera',
+    'frame' : 'https://service.novacamera.online/frame',
 }
 
-IP_CONVERTER = {
-    "172.20.10.2" : 0,
-    "172.20.10.3" : 1,
+CHIP_ID = {
+    "405a4ce342a8" : 0,
 }

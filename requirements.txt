@@ -9,4 +9,4 @@ starlette
 torch
 tqdm
 ultralytics
-uvicorn
+'uvicorn[standard]'
