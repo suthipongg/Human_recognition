@@ -9,7 +9,7 @@
 // ------------------- config -------------------
 const char* ssid = "meen mes mew_2.4G";
 const char* password = "meen mes mew";
-const char* serverUrl = "http://47.236.74.47:4451/upload_image"; // Modify with your server URL
+const char* serverUrl = "http://47.236.74.47:4450/upload_image"; // Modify with your server URL
 
 const int FPS = 10;
 const unsigned long captureInterval = 1.0/float(FPS) * 1000;
