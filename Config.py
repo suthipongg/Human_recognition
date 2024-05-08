@@ -9,8 +9,13 @@ DATA_TRACKING_FOLDER = VIDEO_ROOT / Path("data_tracking")
 
 TRACKER = 'bytetrack.yaml'
 
+
+CHIP_ID = {
+    "405a4ce342a8" : 0,
+}
+
 N_GPU = 1
-N_CAM = 1
+N_CAM = len(CHIP_ID)
 
 EXT_VIDEO = ".avi"
 N_PREVIOUS_FRAME = 10
@@ -28,8 +33,4 @@ FPS = 10
 POST_URL = {
     'camera' : 'https://service.novacamera.online/camera',
     'frame' : 'https://service.novacamera.online/frame',
-}
-
-CHIP_ID = {
-    "405a4ce342a8" : 0,
 }
