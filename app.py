@@ -127,11 +127,12 @@ async def stream(websocket: WebSocket):
             else:
                 cam_info[cam_id]['realtime'] = True
                 await websocket.send_text('Wait camera')
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(1)
         await websocket.close()
         return f"cam_id {cam_id} stopped streaming"
     except Exception as e:
         print(str(e))
+        await websocket.send_text('send frame error')
         await websocket.close()
         cam_info[cam_id]['realtime'] = False
         return str(e), 500

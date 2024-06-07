@@ -12,6 +12,7 @@ TRACKER = 'bytetrack.yaml'
 
 CHIP_ID = {
     "405a4ce342a8" : 0,
+    "940c26182ec8" : 1,
 }
 
 N_GPU = 1
