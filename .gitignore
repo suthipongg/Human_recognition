@@ -1,8 +1,3 @@
-weights/
+weights/*.pt
+*.pt
 __pycache__/
-models/*/
-video_uploads/*.mp4
-video_uploads/*.avi
-video_uploads/*.jpg
-video/
-video_root/

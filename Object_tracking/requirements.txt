@@ -1,0 +1,10 @@
+asposestorage
+numpy
+opencv_contrib_python
+opencv_python
+opencv_python_headless
+Requests
+torch
+tqdm
+ultralytics
+redis
