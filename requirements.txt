@@ -9,5 +9,5 @@ starlette
 torch
 tqdm
 ultralytics
-'uvicorn[standard]'
+uvicorn
 redis

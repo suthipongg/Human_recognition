@@ -8,7 +8,7 @@ if not RedisClient.check_redis_connection():
     RedisClient.clear_redis_data('frame')
     raise Exception("Redis connection failed")
 
-logging.basicConfig(level = logging.INFO)
+logging.basicConfig(level = logging.DEBUG)
 logging.info("create video service initial")
 
 camera = CaptureService()

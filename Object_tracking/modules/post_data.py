@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
 
-from Object_tracking.Object_tracking.Configs.config import Config
+from Configs.config import Config
 
 def post_camera(data, timestamp):
     body_data = {}

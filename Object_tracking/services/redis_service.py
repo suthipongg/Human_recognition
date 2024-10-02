@@ -23,14 +23,17 @@ class RedisClient:
 
     @classmethod
     def clear_redis_data(cls, id):
+        logging.info(f"clear data from redis: {id}")
         return cls.redis_client.delete(id)
 
     @classmethod
-    def set_redis_data(cls, id, data):
-        cls.redis_client.set(id, json.dumps(data), ex=5/Config.FPS)
+    def set_redis_data(cls, id, data, ex=None):
+        logging.info(f"set data to redis: {data} with id: {id} and ex: {ex}")
+        cls.redis_client.set(id, json.dumps(data), ex=ex)
         
     @classmethod
     def get_redis_data(cls, id):
         cache_response = cls.redis_client.get(id)
         data = json.loads(cache_response) if cache_response else {}
+        logging.info(f"get data from redis: {data}")
         return data

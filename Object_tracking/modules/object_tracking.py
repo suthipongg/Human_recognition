@@ -14,12 +14,15 @@ from Configs.config import Config
 
 
 class ObjectTracking:
-    def __init__(self, model_path='yolov8n.pt'):
+    def __init__(self, model_path=Config.MODEL_PATH):
         logging.info(f"loading model")
         self.model = ObjectTrackingModel(model_path)
         self.meta_data = {'car':0, 'person':0}
-        self.data = {'count': self.meta_data.copy(), 'frame': self.meta_data.copy(), 'max_id': self.meta_data.copy()}
+        self.init_data()
         self.first_start = True
+
+    def init_data(self):
+        self.data = {'count': self.meta_data.copy(), 'frame': self.meta_data.copy(), 'max_id': self.meta_data.copy()}
 
     def update_data(self, track_id, class_id, start_count=False):
         n_car = n_person = 0
@@ -34,12 +37,15 @@ class ObjectTracking:
                 if start_count: 
                     n_person += 1
                     self.data['count']['person'] += 1
+        return n_car, n_person
 
     def get_track_data(self, video, start_count=False, show_result=False, n_pass_frame=0):
+        logging.info("---> get_track_data")
         for frame in video:
             track_id, class_id = self.model.track_data(frame, verbose=show_result and start_count)
             
             if track_id is None:
+                logging.info(f"no object detected")
                 continue
             
             n_car, n_person = self.update_data(track_id, class_id, start_count)
@@ -49,9 +55,12 @@ class ObjectTracking:
                 self.data['frame']['person'] = max(self.data['frame']['person'], n_person)
             elif start_count:
                 n_pass_frame -= 1
+        logging.info(f"count: {self.data['count']}")
 
 
     def tracking_process(self, video_path, show_result=False):
+        logging.info(f"---> tracking process")
+        self.init_data()
         previous_video = RedisClient.get_redis_data('previous_video')
         difference_time = (int(Path(video_path).stem) - int(previous_video.get('previous_time'))) if previous_video else 0
         video_missing_period = difference_time > (Config.video_length_time + Config.offset_time)
@@ -59,30 +68,37 @@ class ObjectTracking:
 
         logging.info(f"computing {video_path}")
         if is_new_day:
+            logging.info(f"new day")
             RedisClient.clear_redis_data('previous_video')
             for previous_video in os.listdir(Config.VIDEO_TAIL):
                 os.remove(Config.VIDEO_TAIL / previous_video)
+                logging.info(f"remove {Config.VIDEO_TAIL / previous_video}")
             video = LoadVideo(video_path)
             self.get_track_data(video, show_result=show_result, start_count=True)
         elif video_missing_period:
+            logging.info(f"video missing period")
             self.model.load_model()
             video = LoadVideo(video_path)
             self.get_track_data(video, start_count=True, show_result=show_result, n_pass_frame=Config.N_PREVIOUS_FRAME)
         elif previous_video and self.first_start:
-            previous_video_path = Config.VIDEO_TAIL / 'tail' + Config.EXT_VIDEO
+            logging.info(f"previous video")
+            previous_video_path = Config.VIDEO_TAIL / ('tail' + Config.EXT_VIDEO)
             video = LoadVideo(previous_video_path)
             self.get_track_data(video, start_count=False)
 
             video = LoadVideo(video_path)
+
             self.get_track_data(video, show_result=show_result, start_count=True)
         else:
+            logging.info(f"normal")
             video = LoadVideo(video_path)
             self.get_track_data(video, show_result=show_result, start_count=True)
 
         self.first_start = False
 
-        RedisClient.set_redis_data('previous_video', {'previous_time': Path(video_path).stem})
+        RedisClient.set_redis_data('previous_video', {'previous_time': Path(video_path).stem}, Config.video_length_time+Config.offset_time)
         video.save_previous_frame('tail')
         os.remove(video_path)
+        logging.info(f"remove {video_path}")
         logging.info(f"done")
         return self.data

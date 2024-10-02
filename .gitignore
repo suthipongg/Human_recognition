@@ -1,3 +1,6 @@
 weights/*.pt
 *.pt
 __pycache__/
+venv
+*.mp4
+*.avi

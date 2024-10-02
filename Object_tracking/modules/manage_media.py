@@ -1,7 +1,7 @@
 import cv2
 from pathlib import Path
 from collections import deque
-import os, re, sys
+import os, sys
 import logging
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -12,9 +12,9 @@ from Configs.config import Config
             
 class LoadVideo:
     def __init__(self, path):
+        logging.info(f"load video from {path}")
         self.stop = False
         p = str(Path(path).resolve())
-        self.id_cam = re.split('_', os.path.splitext(os.path.basename(p))[0])[1]
         self.add_video(p)
         
         self.merge_frame = deque([], maxlen=Config.N_PREVIOUS_FRAME) 
@@ -49,6 +49,7 @@ class LoadVideo:
             out.write(frame)
         out.release()
         self.merge_frame = deque([], maxlen=Config.N_PREVIOUS_FRAME)
+        logging.info(f"save video to {file_path}")
     
     def __kill_video(self):
         self.cap.release()
@@ -59,7 +60,6 @@ class LoadVideo:
         return self.frames  # amount of frames
     
 def scan_video():
-    logging.basicConfig(level = logging.INFO)
     logging.info("manage queue system initial")
     
     video_names = os.listdir(Config.VIDEO_ALL)
@@ -68,8 +68,10 @@ def scan_video():
     for video_name in video_names:
         if video_name.endswith(Config.EXT_VIDEO):
             (Config.VIDEO_ALL / video_name).rename(Config.VIDEO_CURRENT / video_name)
+            logging.info(f"found video {Config.VIDEO_CURRENT / video_name}")
             return Config.VIDEO_CURRENT / video_name
         else:
+            logging.info(f"remove {Config.VIDEO_ALL / video_name}")
             os.remove(Config.VIDEO_ALL / video_name)
     logging.info("no video found")
     return False

@@ -12,7 +12,6 @@ from modules.object_tracking import ObjectTracking
 from modules.post_data import post_camera, post_frame
 from services.redis_service import RedisClient
 
-logging.basicConfig(level = logging.INFO)
 logging.info("object tracking")
 
 
@@ -21,11 +20,13 @@ class ObjectTrackingService:
         self.object_tracking = ObjectTracking()
 
     def check_video(self):
+        logging.info("---> check video")
         for video in os.listdir(Config.VIDEO_CURRENT):
             if video.endswith(Config.EXT_VIDEO):
                 current_video = Config.VIDEO_CURRENT / video
                 break
             os.remove(Config.VIDEO_CURRENT / video)
+            logging.info(f"remove {Config.VIDEO_CURRENT / video}")
         else:
             current_video = scan_video()
         return current_video
@@ -33,16 +34,16 @@ class ObjectTrackingService:
     def process_data(self, id, data):
         data_previous = RedisClient.get_redis_data(id)
         date_time = date.fromtimestamp(int(data['timestamp']))
-
-        if data_previous is None:
+        if not data_previous:
             data_previous = data['count'].copy()
             data_previous['date'] = date_time.strftime("%Y-%m-%d")
             RedisClient.set_redis_data(id, data_previous)
+            logging.info("not data previous")
             return data
         
         # update data
         for key, value in data['count'].items():
-            if date_time > date.strptime(data_previous['date'], "%Y-%m-%d"):
+            if date_time > datetime.strptime(data_previous['date'], "%Y-%m-%d").date():
                 data_previous[key] = value
             else:
                 data_previous[key] += value
@@ -52,10 +53,12 @@ class ObjectTrackingService:
         RedisClient.set_redis_data(id, data_previous)
         data_previous.pop('date')
         data['count'] = data_previous
+        logging.info(f"update data {id}: {data_previous}")
         return data
 
     def run_tracking(self):
         while True:
+            logging.info("=====================================")
             current_video = self.check_video()
             if not current_video:
                 logging.info("no video found")
@@ -69,7 +72,7 @@ class ObjectTrackingService:
             data_info = self.process_data('previous_data', data_info)
 
             time_device = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
-            post_camera(data_info['count'], time_device)
-            post_frame(data_info['frame'], time_device)
+            # post_camera(data_info['count'], time_device)
+            # post_frame(data_info['frame'], time_device)
 
             logging.info("end tracking")
