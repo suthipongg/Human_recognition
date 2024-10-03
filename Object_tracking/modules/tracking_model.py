@@ -32,10 +32,9 @@ class ObjectTrackingModel:
         return self.model
     
     def track_data(self, frame, verbose=False):
-        results = self.model.track(frame, persist=True, tracker=str(ROOT / 'weights' / Config.TRACKER), classes=[0, 1, 2, 3, 5, 7], verbose=verbose)
-        track_id = results[0].boxes.id
+        results = self.model.track(frame, persist=True, tracker=str(Config.TRACKER), classes=[0, 1, 2, 3, 5, 7], verbose=verbose)
         
-        if track_id is None:
-            return None, None
+        if results[0].boxes.id is None:
+            return None
         
-        return results[0].boxes.id, results[0].boxes.cls
+        return results[0].boxes

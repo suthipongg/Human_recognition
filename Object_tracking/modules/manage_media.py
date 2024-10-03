@@ -38,13 +38,15 @@ class LoadVideo:
     def add_video(self, path):
         self.stop = False
         self.cap = cv2.VideoCapture(str(path))
+        self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
     
     def save_previous_frame(self, file_name):
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
         file_name = file_name + Config.EXT_VIDEO
         file_path = str(Config.VIDEO_TAIL / file_name)
-        out = cv2.VideoWriter(file_path, fourcc, Config.FPS, (Config.WIDTH, Config.HEIGHT))
+        out = cv2.VideoWriter(file_path, fourcc, Config.FPS, (self.width, self.height))
         for frame in self.merge_frame:
             out.write(frame)
         out.release()

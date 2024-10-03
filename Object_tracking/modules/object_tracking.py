@@ -42,11 +42,12 @@ class ObjectTracking:
     def get_track_data(self, video, start_count=False, show_result=False, n_pass_frame=0):
         logging.info("---> get_track_data")
         for frame in video:
-            track_id, class_id = self.model.track_data(frame, verbose=show_result and start_count)
-            
-            if track_id is None:
+            boxes = self.model.track_data(frame, verbose=show_result and start_count)
+
+            if boxes is None:
                 logging.info(f"no object detected")
                 continue
+            track_id, class_id = boxes.id, boxes.cls
             
             n_car, n_person = self.update_data(track_id, class_id, start_count)
 

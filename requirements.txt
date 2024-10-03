@@ -1,6 +1,7 @@
+ultralytics==8.2.92
+onnx==1.16.2
 asposestorage
 fastapi
-numpy
 opencv_contrib_python
 opencv_python
 opencv_python_headless
@@ -8,6 +9,7 @@ Requests
 starlette
 torch
 tqdm
-ultralytics
 uvicorn
 redis
+numpy==1.23.1
+pandas==1.4.4

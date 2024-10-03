@@ -11,5 +11,9 @@ if not RedisClient.check_redis_connection():
 logging.basicConfig(level = logging.DEBUG)
 logging.info("create video service initial")
 
-camera = CaptureService()
-camera.run_camera()
+def run_camera():
+    camera = CaptureService()
+    camera.run_camera()
+
+if __name__ == "__main__":
+    run_camera()

@@ -11,5 +11,6 @@ if not RedisClient.check_redis_connection():
 
 logging.info("tracking service initial")
 
-track = ObjectTrackingService()
-track.run_tracking()
+if __name__ == "__main__":
+    track = ObjectTrackingService()
+    track.run_tracking()

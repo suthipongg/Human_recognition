@@ -10,7 +10,8 @@ class Config:
         'frame' : 'https://service.novacamera.online/frame',
     }
 
-    VIDEO_ROOT = Path(os.path.abspath(__file__)).parents[0] / Path("temp")
+    ROOT = Path(os.path.abspath(__file__)).parents[1]
+    VIDEO_ROOT = ROOT / Path("temp")
     VIDEO_TAIL = VIDEO_ROOT / Path("tail")
     VIDEO_CURRENT = VIDEO_ROOT / Path("current")
     VIDEO_ALL = VIDEO_ROOT.parents[2] / Path("Video")
@@ -19,17 +20,11 @@ class Config:
         if not os.path.exists(folder):
             os.makedirs(folder)
 
-    TRACKER = 'bytetrack.yaml'
-    MODEL_PATH = 'weights/yolov8n.pt'
+    TRACKER = ROOT / 'weights' / 'bytetrack.yaml'
+    MODEL_PATH = ROOT / 'weights' / 'yolov8n.pt'
 
     EXT_VIDEO = ".avi"
     N_PREVIOUS_FRAME = 10
-
-    # WIDTH = 768
-    # HEIGHT = 576
-
-    WIDTH = 800
-    HEIGHT = 600
 
     video_length_time = 60 # in second
     offset_time = 3 # in second
