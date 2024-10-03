@@ -30,7 +30,7 @@ app.include_router(stream_route)
 def run_app():
     uvicorn.run("stream:app", 
                 host='0.0.0.0', 
-                port=8080, 
+                port=9060, 
                 log_level="info", 
                 reload=False
                 )

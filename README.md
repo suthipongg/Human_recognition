@@ -42,6 +42,9 @@ echo 'export LD_LIBRARY_PATH="/usr/local/cuda-10.2/lib64:$LD_LIBRARY_PATH"' >> ~
     PONG 
     ```
 
+# install pm2
+ref: https://pm2.io/docs/runtime/guide/installation/
+
 # Get start
 1. sudo apt install python3-dev python3-venv python3-pip 
 2. mkdir Desktop/object_tracking & cd Desktop/object_tracking
@@ -52,3 +55,12 @@ echo 'export LD_LIBRARY_PATH="/usr/local/cuda-10.2/lib64:$LD_LIBRARY_PATH"' >> ~
 7. cd Object_tracking
 8. git checkout -b nvidia_jetson
 6. pip install -r requirements.txt
+
+# test tracking
+1. cd Object_tracking
+2. python3 demo.py
+3. press 'q' to stop record video and wait a minute to compute tracking then result will save in reult folder named as <timestamp>_result.py
+
+# Run
+1. cd Object_tracking
+2. `bash start_pm2.sh`
