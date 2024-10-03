@@ -45,6 +45,9 @@ echo 'export LD_LIBRARY_PATH="/usr/local/cuda-10.2/lib64:$LD_LIBRARY_PATH"' >> ~
 # install pm2
 ref: https://pm2.io/docs/runtime/guide/installation/
 
+# install crontab
+ref: https://www.uptimia.com/questions/how-to-install-crontab-in-ubuntu
+
 # Get start
 1. sudo apt install python3-dev python3-venv python3-pip 
 2. mkdir Desktop/object_tracking & cd Desktop/object_tracking
@@ -64,3 +67,11 @@ ref: https://pm2.io/docs/runtime/guide/installation/
 # Run
 1. cd Object_tracking
 2. `bash start_pm2.sh`
+
+# Start/Stop pm2 service period
+1. crontab -e
+2. set time 9:00 - 13:00
+```
+0 9 * * * pm2 start yourappname
+0 13 * * * pm2 stop yourappname
+```
