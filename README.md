@@ -48,6 +48,11 @@ ref: https://www.uptimia.com/questions/how-to-install-crontab-in-ubuntu
 8. pip install -U pip
 9. pip install -r requirements.txt
 
+# Model
+use yolov8n
+1. copy yolov8n.engine & yolov8n.onnx into Object_tracking github location is Object_tracking/weights
+2. if don't have yolov8n.engine & yolov8n.onnx file run the command `python3 scripts/convert_pt2rt.py` or `python3 scripts/convert_pt2rt_int8.py` (if want to quantize to int8) and then save yolov8n.engine & yolov8n.onnx
+
 # test tracking
 1. cd Object_tracking
 2. python3 scripts/demo.py

@@ -21,7 +21,7 @@ class Config:
             os.makedirs(folder)
 
     TRACKER = ROOT / 'weights' / 'bytetrack.yaml'
-    MODEL_PATH = ROOT / 'weights' / 'yolov8n.pt'
+    MODEL_PATH = ROOT / 'weights' / 'yolov8n.engine'
 
     EXT_VIDEO = ".avi"
     N_PREVIOUS_FRAME = 10
