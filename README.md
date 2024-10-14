@@ -50,7 +50,7 @@ ref: https://www.uptimia.com/questions/how-to-install-crontab-in-ubuntu
 
 # test tracking
 1. cd Object_tracking
-2. python3 demo.py
+2. python3 scripts/demo.py
 3. press 'q' to stop record video and wait a minute to compute tracking then result will save in reult folder named as <timestamp>_result.py
 
 # Run

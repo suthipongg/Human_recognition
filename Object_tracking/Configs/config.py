@@ -14,7 +14,7 @@ class Config:
     VIDEO_ROOT = ROOT / Path("temp")
     VIDEO_TAIL = VIDEO_ROOT / Path("tail")
     VIDEO_CURRENT = VIDEO_ROOT / Path("current")
-    VIDEO_ALL = VIDEO_ROOT.parents[2] / Path("Video")
+    VIDEO_ALL = VIDEO_ROOT.parents[1] / Path("Video")
 
     for folder in [VIDEO_ROOT, VIDEO_TAIL, VIDEO_CURRENT, VIDEO_ALL]:
         if not os.path.exists(folder):
