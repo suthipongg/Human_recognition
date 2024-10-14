@@ -31,31 +31,6 @@ class ObjectTrackingService:
             current_video = scan_video()
         return current_video
 
-    def process_data(self, id, data):
-        data_previous = RedisClient.get_redis_data(id)
-        date_time = date.fromtimestamp(int(data['timestamp']))
-        if not data_previous:
-            data_previous = data['count'].copy()
-            data_previous['date'] = date_time.strftime("%Y-%m-%d")
-            RedisClient.set_redis_data(id, data_previous)
-            logging.info("not data previous")
-            return data
-        
-        # update data
-        for key, value in data['count'].items():
-            if date_time > datetime.strptime(data_previous['date'], "%Y-%m-%d").date():
-                data_previous[key] = value
-            else:
-                data_previous[key] += value
-        
-        # save data
-        data_previous['date'] = date_time.strftime("%Y-%m-%d")
-        RedisClient.set_redis_data(id, data_previous)
-        data_previous.pop('date')
-        data['count'] = data_previous
-        logging.info(f"update data {id}: {data_previous}")
-        return data
-
     def run_tracking(self):
         while True:
             logging.info("=====================================")
@@ -69,7 +44,6 @@ class ObjectTrackingService:
             timestamp = int(current_video.stem)
             data_info = self.object_tracking.tracking_process(current_video)
             data_info['timestamp'] = timestamp
-            data_info = self.process_data('previous_data', data_info)
 
             time_device = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
             # post_camera(data_info['count'], time_device)

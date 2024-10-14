@@ -1,6 +1,6 @@
 # install ubuntu 20
-1. [download image ](https://github.com/Qengineering/Jetson-Nano-Ubuntu-20-image?tab=readme-ov-file#tip)
-2. [Expand the image to larger SD cards](https://github.com/Qengineering/Jetson-Nano-Ubuntu-20-image?tab=readme-ov-file#tip)  (minimum SDCard storage = 64GB)
+1. [download image ](https://github.com/Qengineering/Jetson-Nano-Ubuntu-20-image?tab=readme-ov-file#tip) and flash by use balenaEtcher (username: nano, password: jetson)
+2. install gpart with command: `sudo apt-get install gparted -y` and [Expand the image to larger SD cards](https://github.com/Qengineering/Jetson-Nano-Ubuntu-20-image?tab=readme-ov-file#tip)  (minimum SDCard storage = 64GB)
 
 ref: https://github.com/Qengineering/Jetson-Nano-Ubuntu-20-image?tab=readme-ov-file#tip
 
@@ -9,17 +9,6 @@ ref: https://github.com/Qengineering/Jetson-Nano-Ubuntu-20-image?tab=readme-ov-f
 `sudo nvpmodel -m 0`
 2. Enable Jetson Clocks
 `sudo jetson_clocks`
-
-# install nvidia software through the sdkmanager by not flash
-1. Install Jetson Stats Application
-`
-sudo apt update
-sudo pip install jetson-stats -y
-sudo reboot
-jtop
-`
-2. add
-`sudo apt-get install nvidia-jetpack`
 
 ### Don't `sudo apt upgrade`
 
@@ -49,15 +38,15 @@ ref: https://pm2.io/docs/runtime/guide/installation/
 ref: https://www.uptimia.com/questions/how-to-install-crontab-in-ubuntu
 
 # Get start
-1. sudo apt install python3-dev python3-venv python3-pip 
-2. mkdir Desktop/object_tracking & cd Desktop/object_tracking
-3. python3 -m venv venv --system-site-packages
-4. source venv/bin/activate
-5. pip install -U pip
-6. git clone https://github.com/suthipongg/Object_tracking.git
-7. cd Object_tracking
-8. git checkout -b nvidia_jetson
-6. pip install -r requirements.txt
+1. sudo apt install python3-dev python3-venv python3-pip -y
+2. cd Desktop
+3. git clone https://github.com/suthipongg/Object_tracking.git
+4. cd Object_tracking
+5. git checkout -b nvidia_jetson
+6. python3 -m venv venv --system-site-packages
+7. source venv/bin/activate
+8. pip install -U pip
+9. pip install -r requirements.txt
 
 # test tracking
 1. cd Object_tracking
