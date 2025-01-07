@@ -9,7 +9,7 @@ if str(ROOT) not in sys.path:
 class CameraModule:
     def __init__(self):
         self.cam  = cv2.VideoCapture(0)
-        if (self.cam .isOpened() == False):  
+        if (self.cam.isOpened() == False):  
             raise Exception("Error reading video file")
 
     def camera_is_opened(self):

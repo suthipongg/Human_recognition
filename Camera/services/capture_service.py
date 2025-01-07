@@ -86,7 +86,7 @@ class CaptureService:
                         self.write_video(frame, time.time())
                     else:
                         logging.error("Error reading frame")
-                        break
+                        # break
                 except Exception as e:
                     logging.error(f"Error receiving image: {e}")
                     raise e

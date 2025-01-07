@@ -12,6 +12,12 @@ ref: https://github.com/Qengineering/Jetson-Nano-Ubuntu-20-image?tab=readme-ov-f
 
 ### Don't `sudo apt upgrade`
 
+# connect wifi
+```
+nmcli dev wifi list
+sudo nmcli dev wifi connect "4G-UFI-0329" password "1234567890"
+```
+
 # define cuda apth
 ``` bash
 echo 'export PATH="/usr/local/cuda-10.2/bin:$PATH"' >> ~/.bashrc

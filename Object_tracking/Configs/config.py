@@ -3,7 +3,8 @@ import os
 
 class Config:
 
-    DEVICE_ID = 'cam1'
+    with open("/proc/device-tree/serial-number", "r") as file:
+        DEVICE_ID = file.read().replace('\x00', '').strip()
 
     POST_URL = {
         'camera' : 'https://service.novacamera.online/camera',

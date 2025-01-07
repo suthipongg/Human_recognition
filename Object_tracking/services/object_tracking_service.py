@@ -46,7 +46,7 @@ class ObjectTrackingService:
             data_info['timestamp'] = timestamp
 
             time_device = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
-            # post_camera(data_info['count'], time_device)
-            # post_frame(data_info['frame'], time_device)
+            post_camera(data_info['count'], time_device)
+            post_frame(data_info['frame'], time_device)
 
             logging.info("end tracking")
